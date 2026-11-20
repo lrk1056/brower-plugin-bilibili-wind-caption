@@ -207,18 +207,24 @@
   }
 
   /* ---------- 面板注入（三种显示模式） ---------- */
-  // 找到适合"嵌入"的锚点：视频播放器容器之后，让面板进入页面内容流
+  // 找到视频区域容器：面板要覆盖在视频右侧（弹幕层 danmukuBox 所在区域）之上，
+  // 而不是插到整个播放器下方。优先取弹幕层的父容器，其次视频包裹层。
   function findEmbedAnchor() {
-    const sels = [
-      '.bpx-player-container', '.bpx-player-wrap', '#playerWrap', '.video-container',
-      '.player-wrap', '#bilibili-player', '.html5-player-container'
-    ];
-    for (const s of sels) {
-      const el = document.querySelector(s);
-      if (el) return el;
-    }
+    // 1) 最可靠：video 元素的直接父容器就是视频画面区，
+    //    面板作为绝对定位覆盖层放进去，天然与视频对齐、随页面滚动。
     const v = document.querySelector('video');
-    return v ? (v.closest('div') || v.parentElement) : null;
+    if (v) {
+      const p = v.parentElement;
+      // 若父容器太小（只是个包裹壳），再向上一级找有实际尺寸的容器
+      if (p && p.getBoundingClientRect().width > 200) return p;
+      if (p && p.parentElement) return p.parentElement;
+      return p;
+    }
+    // 2) 无 video 时：新播放器弹幕层父级
+    const dm = document.querySelector('.bpx-player-dm-wrap, .bpx-player-video-dm, #danmukuBox');
+    if (dm) return dm.parentElement || dm;
+    // 3) 视频包裹层兜底
+    return document.querySelector('.video-container, .player-wrap, #playerWrap');
   }
 
   function ensureEmbedHost() {
@@ -229,21 +235,37 @@
     const side = (state.settings.display && state.settings.display.panelSide) || 'right';
     if (side === 'left') host.classList.add('side-left');
     const anchor = findEmbedAnchor();
-    if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(host, anchor.nextSibling);
-    else document.body.appendChild(host);
+    if (anchor) {
+      prepareEmbedAnchor(anchor, host);
+      anchor.appendChild(host);
+    } else {
+      document.body.appendChild(host);
+    }
     return host;
   }
-  // 视频元素可能晚于 content script 出现：定时把嵌入 host 移到正确的播放器容器后
+  // 让锚点成为定位上下文，并避免 overflow:hidden 裁掉面板
+  function prepareEmbedAnchor(anchor, host) {
+    const cs = getComputedStyle(anchor);
+    if (cs.position === 'static') { host.dataset.anchorWasStatic = '1'; anchor.style.position = 'relative'; }
+    if (cs.overflow === 'hidden' || cs.overflowX === 'hidden') { host.dataset.anchorOverflow = anchor.style.overflow; anchor.style.overflow = 'visible'; }
+  }
+  function restoreAnchor(anchor, host) {
+    if (host.dataset.anchorWasStatic === '1') { anchor.style.position = ''; delete host.dataset.anchorWasStatic; }
+    if (host.dataset.anchorOverflow !== undefined) { anchor.style.overflow = host.dataset.anchorOverflow; delete host.dataset.anchorOverflow; }
+  }
+  // 视频元素可能晚于 content script 出现：定时把嵌入 host 移到视频区域容器
   function repositionEmbedHost() {
     if (state.panelMode !== 'embed' || !state.frame) return;
     const host = document.getElementById('vc-embed-host');
     if (!host) return;
     const anchor = findEmbedAnchor();
-    if (!anchor || !anchor.parentElement) return;
-    const wantedNext = anchor.nextSibling;
-    // 已经在正确位置则跳过
-    if (host.previousSibling === anchor) return;
-    anchor.parentElement.insertBefore(host, wantedNext);
+    if (!anchor) return;
+    if (host.parentElement === anchor) return; // 已在正确位置
+    // 还原旧锚点
+    const old = host.parentElement;
+    if (old && old !== document.body) restoreAnchor(old, host);
+    prepareEmbedAnchor(anchor, host);
+    anchor.appendChild(host);
   }
 
   function injectPanel() {
