@@ -32,8 +32,7 @@
 
     $('#d-position').value = s.display.position || 'embed';
     $('#d-side').value = s.display.panelSide || 'right';
-    $('#d-x').value = s.display.fixedX; $('#d-y').value = s.display.fixedY;
-    $('#d-w').value = s.display.width; $('#d-h').value = s.display.height;
+    $('#d-w').value = s.display.width || 420; $('#d-h').value = s.display.height || 520;
     $('#d-density').value = s.density || 'standard';
     $('#d-font').value = s.fontSize || 15;
     $('#d-striped').checked = !!s.striped;
@@ -126,10 +125,8 @@
     settings.subtitleBar.showSubtitle = $('#b-subtitle').checked;
     settings.display.position = $('#d-position').value;
     settings.display.panelSide = $('#d-side').value;
-    settings.display.fixedX = +$('#d-x').value || 0;
-    settings.display.fixedY = +$('#d-y').value || 0;
-    settings.display.width = +$('#d-w').value || 420;
-    settings.display.height = +$('#d-h').value || 600;
+    settings.display.width = Math.max(300, Math.min(800, +$('#d-w').value || 420));
+    settings.display.height = Math.max(300, Math.min(1200, +$('#d-h').value || 520));
     settings.density = $('#d-density').value;
     settings.fontSize = +$('#d-font').value || 15;
     settings.striped = $('#d-striped').checked;

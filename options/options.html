@@ -30,13 +30,11 @@
 
     <section data-panel="display" class="hidden">
       <h1>显示配置</h1>
-      <div class="item"><div><b>默认显示位置</b></div><select id="d-position"><option value="embed">嵌入页面</option><option value="float">悬浮窗</option><option value="side">侧边栏</option></select></div>
-      <div class="item"><div><b>嵌入面板位置</b></div><select id="d-side"><option value="right">右侧</option><option value="left">左侧</option></select></div>
+      <div class="item"><div><b>默认显示位置</b><p>嵌入页面：融入视频旁页面内容；悬浮窗：浮于页面可拖动；侧边栏：浏览器独立侧栏</p></div><select id="d-position"><option value="embed">嵌入页面</option><option value="float">悬浮窗</option><option value="side">侧边栏</option></select></div>
+      <div class="item"><div><b>嵌入面板位置</b><p>仅在「嵌入页面」模式生效：面板位于视频左侧或右侧</p></div><select id="d-side"><option value="right">右侧</option><option value="left">左侧</option></select></div>
       <div class="grid4">
-        <label>X 坐标<input type="number" id="d-x"></label>
-        <label>Y 坐标<input type="number" id="d-y"></label>
-        <label>宽度<input type="number" id="d-w"></label>
-        <label>高度<input type="number" id="d-h"></label>
+        <label>悬浮窗宽度<input type="number" id="d-w" min="300" max="800"></label>
+        <label>悬浮窗高度<input type="number" id="d-h" min="300" max="1200"></label>
       </div>
       <div class="item"><div><b>显示密度</b></div><select id="d-density"><option value="compact">紧凑</option><option value="standard">标准</option><option value="comfortable">宽松</option></select></div>
       <div class="item"><div><b>字体大小</b></div><select id="d-font"><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>18</option><option>20</option></select></div>

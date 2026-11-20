@@ -122,12 +122,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         await chrome.runtime.openOptionsPage();
         return { ok: true };
       }
-      case 'OPEN_PANEL': {
-        const tab = await chrome.tabs.get(msg.tabId);
-        try { await chrome.sidePanel.open({ tabId: msg.tabId }); }
-        catch (e) {
-          // Firefox / 不支持时：回退为在大纲页面注入（content 已处理）
-        }
+      case 'OPEN_PANEL':
+      case 'OPEN_SIDEPANEL': {
+        try {
+          const tabId = msg.tabId || (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id;
+          if (tabId) await chrome.sidePanel.open({ tabId });
+        } catch (e) { console.warn('[vc-bg] open sidepanel failed', e); }
+        return { ok: true };
+      }
+      case 'CLOSE_SIDEPANEL': {
+        // Chrome 无主动关闭 sidePanel 的 API（用户点浏览器侧边栏按钮关闭）；
+        // 通知 content 切回即可。保留占位以兼容未来。
         return { ok: true };
       }
       case 'FETCH_TEXT': {

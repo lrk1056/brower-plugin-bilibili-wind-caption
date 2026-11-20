@@ -139,7 +139,15 @@
   function currentSentences() { return (state.sources[state.activeSource] || {}).sentences || []; }
   function bindVideoEvents() {
     const v = video();
-    if (!v) return;
+    if (!v) {
+      // 视频尚未出现：定时重试绑定 + 校正嵌入位置
+      let tries = 0;
+      const t = setInterval(() => {
+        repositionEmbedHost();
+        if (video() || ++tries > 20) { clearInterval(t); if (video()) bindVideoEvents(); }
+      }, 1000);
+      return;
+    }
     v.addEventListener('timeupdate', () => {
       const t = v.currentTime * 1000;
       const list = currentSentences();
@@ -198,37 +206,126 @@
       ${b.showSubtitle ? `<div class="vc-cb-text">${s.content}</div>` : ''}`;
   }
 
-  /* ---------- 面板注入 ---------- */
+  /* ---------- 面板注入（三种显示模式） ---------- */
+  // 找到适合"嵌入"的锚点：视频播放器容器之后，让面板进入页面内容流
+  function findEmbedAnchor() {
+    const sels = [
+      '.bpx-player-container', '.bpx-player-wrap', '#playerWrap', '.video-container',
+      '.player-wrap', '#bilibili-player', '.html5-player-container'
+    ];
+    for (const s of sels) {
+      const el = document.querySelector(s);
+      if (el) return el;
+    }
+    const v = document.querySelector('video');
+    return v ? (v.closest('div') || v.parentElement) : null;
+  }
+
+  function ensureEmbedHost() {
+    let host = document.getElementById('vc-embed-host');
+    if (host) return host;
+    host = document.createElement('div');
+    host.id = 'vc-embed-host';
+    const side = (state.settings.display && state.settings.display.panelSide) || 'right';
+    if (side === 'left') host.classList.add('side-left');
+    const anchor = findEmbedAnchor();
+    if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(host, anchor.nextSibling);
+    else document.body.appendChild(host);
+    return host;
+  }
+  // 视频元素可能晚于 content script 出现：定时把嵌入 host 移到正确的播放器容器后
+  function repositionEmbedHost() {
+    if (state.panelMode !== 'embed' || !state.frame) return;
+    const host = document.getElementById('vc-embed-host');
+    if (!host) return;
+    const anchor = findEmbedAnchor();
+    if (!anchor || !anchor.parentElement) return;
+    const wantedNext = anchor.nextSibling;
+    // 已经在正确位置则跳过
+    if (host.previousSibling === anchor) return;
+    anchor.parentElement.insertBefore(host, wantedNext);
+  }
+
   function injectPanel() {
-    // 只在顶层窗口注入面板，避免注入到 B站/YouTube 的 iframe 子帧里而不可见
+    // 只在顶层窗口注入面板，避免注入到 iframe 子帧里而不可见
     if (window !== window.top) { console.log('[vc] skip panel in iframe'); return; }
+    if (state.panelMode === 'side') { openSidePanel(); return; } // 侧边栏用原生 sidePanel
     if (state.frame) return;
     const frame = document.createElement('iframe');
     frame.id = 'vc-panel-frame';
     frame.src = chrome.runtime.getURL('panel/panel.html') + '?token=' + encodeURIComponent(TOKEN);
     frame.dataset.token = TOKEN;
-    document.body.appendChild(frame);
     state.frame = frame;
-    applyLayout(); // 立即套用定位样式，避免无样式的裸 iframe
+    mountFrame(frame);
     frame.addEventListener('load', () => {
-      console.log('[vc] panel iframe loaded');
+      console.log('[vc] panel iframe loaded, mode=', state.panelMode);
       proto.init({ role: 'content', target: frame.contentWindow, token: TOKEN });
-      registerProtoHandlers();
       pushState();
     });
-    console.log('[vc] panel injected, src=', frame.src);
+    console.log('[vc] panel injected, mode=', state.panelMode);
+  }
+
+  // 把 iframe 挂到对应容器（嵌入进页面流 / 悬浮固定）
+  function mountFrame(frame) {
+    if (state.panelMode === 'embed') {
+      const host = ensureEmbedHost();
+      host.appendChild(frame);
+    } else {
+      document.body.appendChild(frame);
+    }
+  }
+  function unmountFrame(frame) {
+    if (frame && frame.parentElement) frame.parentElement.removeChild(frame);
   }
   function removePanel() {
-    if (state.frame) { state.frame.remove(); state.frame = null; }
+    if (state.frame) { unmountFrame(state.frame); state.frame = null; }
   }
   function applyLayout() {
     const f = state.frame;
     if (!f) return;
     f.className = 'vc-panel mode-' + state.panelMode + (state.folded ? ' folded' : '');
-    // 位置完全交给 CSS 模式类控制
-    f.style.left = ''; f.style.top = ''; f.style.right = ''; f.style.bottom = ''; f.style.transition = '';
+    // 悬浮窗尺寸由设置决定
+    const d = (state.settings && state.settings.display) || {};
+    if (state.panelMode === 'float') {
+      f.style.width = Math.max(300, Math.min(800, d.width || 420)) + 'px';
+      if (!state.folded) f.style.height = Math.max(300, Math.min(1200, d.height || 520)) + 'px';
+    } else {
+      f.style.width = ''; f.style.height = '';
+    }
+    // 模式切换时重新挂载到正确容器
+    const host = document.getElementById('vc-embed-host');
+    if (state.panelMode === 'embed') {
+      if (!host || !f.parentElement || f.parentElement.id !== 'vc-embed-host') mountFrame(f);
+    } else if (f.parentElement && f.parentElement.id === 'vc-embed-host') {
+      document.body.appendChild(f);
+    }
   }
   applyLayout();
+
+  // 侧边栏：原生 sidePanel（同时移除页面内 iframe）
+  async function openSidePanel() {
+    try {
+      await chrome.runtime.sendMessage({ action: 'OPEN_SIDEPANEL' });
+      console.log('[vc] side panel opened');
+    } catch (e) { console.warn('[vc] open sidepanel failed', e); }
+  }
+  function closeSidePanel() {
+    try { chrome.runtime.sendMessage({ action: 'CLOSE_SIDEPANEL' }); } catch (e) {}
+  }
+  // 应用显示模式（含 iframe <-> sidePanel 切换）
+  async function setPanelMode(mode) {
+    if (!['embed', 'float', 'side'].includes(mode)) return;
+    if (state.panelMode === 'side' && mode !== 'side') closeSidePanel();
+    state.panelMode = mode;
+    if (mode === 'side') {
+      removePanel();          // 移除页面内 iframe
+      await openSidePanel();
+    } else {
+      if (!state.frame) injectPanel();
+      else applyLayout();
+    }
+    pushState();
+  }
 
   /* ---------- 协议处理 ---------- */
   async function statePayload() {
@@ -245,7 +342,12 @@
       panelMode: state.panelMode, folded: state.folded
     };
   }
-  async function pushState() { proto.emit('STATE', await statePayload()); applyLayout(); }
+  async function pushState() {
+    const payload = await statePayload();
+    proto.emit('STATE', payload);          // iframe 模式
+    proto.pushEvent('STATE', payload);     // 侧边栏模式（chrome 广播）
+    applyLayout();
+  }
   function registerProtoHandlers() {
     proto.on('GET_STATE', () => statePayload());
     proto.on('JUMP_TO', p => { jumpTo(p.idx); return { ok: true }; });
@@ -254,7 +356,15 @@
       jumpTo(Math.max(0, idx)); return { ok: true };
     });
     proto.on('CONTROL', p => { control(p.op, p.value); return { ok: true }; });
-    proto.on('SET_VIEW_MODE', p => { state.panelMode = p.mode; applyLayout(); return { ok: true }; });
+    proto.on('SET_VIEW_MODE', async p => {
+      await setPanelMode(p.mode);
+      // 同步默认值到设置
+      if (state.settings && state.settings.display) {
+        state.settings.display.position = p.mode;
+        await store.saveSettings(state.settings);
+      }
+      return { ok: true };
+    });
     proto.on('TOGGLE_FOLD', () => { state.folded = !state.folded; applyLayout(); return { ok: true, folded: state.folded }; });
     proto.on('PAUSE_SCROLL', p => { pausedScrollUntil = Date.now() + (p.ms || 2000); return { ok: true }; });
     proto.on('SET_SOURCE', async p => {
@@ -355,10 +465,17 @@
       if (msg.action === 'SHORTCUT_EXPORT') {
         proto.emit('SHORTCUT_EXPORT', { kind: msg.kind });
       } else if (msg.action === 'TOGGLE_PANEL') {
-        state.frame ? removePanel() : injectPanel();
+        if (state.frame) removePanel(); else injectPanel();
+      } else if (msg.action === 'PANEL_VISIBILITY') {
+        // 侧边栏打开/关闭时同步
+        if (msg.open) pushState();
       }
     });
   }
+
+  // 注册协议处理器（供 iframe 与 sidepanel 两条通道共用）
+  registerProtoHandlers();
+  proto.listenChromeForHandlers();
 
   init();
 })();

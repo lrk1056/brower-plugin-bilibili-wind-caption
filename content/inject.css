@@ -1,19 +1,63 @@
 /* 注入到页面的样式：面板 iframe + 字幕悬浮条 */
-#vc-panel-frame.vc-panel {
-  position: fixed;
-  z-index: 2147483646;
-  border: 1px solid #2d3340;
-  border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.45);
-  background: #171a21;
-  transition: all .18s ease;
-}
-#vc-panel-frame.vc-panel.mode-embed { width: 420px; height: 600px; right: 20px; top: 80px; }
-#vc-panel-frame.vc-panel.mode-embed.folded { height: 56px; }
-#vc-panel-frame.vc-panel.mode-float { width: 420px; height: 520px; right: 40px; top: 120px; resize: both; overflow: hidden; }
-#vc-panel-frame.vc-panel.mode-side { right: 0; top: 0; width: 380px; height: 100vh; border-radius: 0; border-top: 0; border-bottom: 0; }
-#vc-panel-frame.vc-panel.mode-side.folded { height: 56px; }
 
+/* 嵌入模式容器：插入页面内容流，随页面正常排布，不遮挡页面 */
+#vc-embed-host {
+  display: flex;
+  width: 100%;
+  margin: 12px 0;
+  gap: 12px;
+  align-items: flex-start;
+  position: relative;
+  z-index: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+#vc-embed-host.side-left { flex-direction: row-reverse; }
+
+/* 三种模式下 iframe 的基础外观 */
+#vc-panel-frame.vc-panel {
+  border: 1px solid var(--bd, #2d3340);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.35);
+  background: #171a21;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* ===== 嵌入页面：参与正常文档流 ===== */
+#vc-panel-frame.vc-panel.mode-embed {
+  position: static !important;
+  width: min(420px, 100%);
+  height: min(620px, 80vh);
+  flex: 0 1 min(420px, 100%);
+  margin: 0;
+  box-shadow: none;
+  border-radius: 8px;
+}
+#vc-panel-frame.vc-panel.mode-embed.folded { height: 56px; flex-basis: min(420px, 100%); }
+/* 窄屏时嵌入容器改为纵向堆叠，面板占满宽度 */
+@media (max-width: 900px) {
+  #vc-embed-host { flex-direction: column; }
+  #vc-panel-frame.vc-panel.mode-embed { width: 100%; flex-basis: auto; height: min(560px, 75vh); }
+}
+#vc-embed-host:empty { display: none; }
+
+/* ===== 悬浮窗：固定视口，浮于页面之上，可调整大小 ===== */
+#vc-panel-frame.vc-panel.mode-float {
+  position: fixed !important;
+  z-index: 2147483646;
+  right: 40px;
+  top: 120px;
+  width: 420px;
+  height: 520px;
+  resize: both;
+  overflow: hidden;
+}
+#vc-panel-frame.vc-panel.mode-float.folded { height: 56px; }
+
+/* ===== 侧边栏：用原生 sidePanel，不在页面注入 iframe（此模式不创建 iframe） ===== */
+#vc-panel-frame.vc-panel.mode-side { display: none; }
+
+/* 字幕悬浮条（B站特性，默认关闭） */
 .vc-caption-bubble {
   position: fixed;
   left: 50%;

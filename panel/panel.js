@@ -3,9 +3,12 @@
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
   const U = VC.util;
-  const token = new URLSearchParams(location.search).get('token') || document.getElementById('vc-panel-frame')?.dataset.token || '';
-  // token 由内容脚本通过 iframe URL 传入
-  VC.proto.init({ role: 'panel', target: parent, token: token || '__PENDING__' });
+  const params = new URLSearchParams(location.search);
+  const isSidepanel = params.get('sidepanel') === '1';
+  const token = params.get('token') || document.getElementById('vc-panel-frame')?.dataset.token || '';
+  // iframe 模式用 postMessage；sidepanel 模式用 chrome 消息通道
+  if (isSidepanel) VC.proto.init({ role: 'panel', transport: 'chrome' });
+  else VC.proto.init({ role: 'panel', target: parent, token: token || '__PENDING__' });
 
   let S = { sentences: [], chapters: [], sources: [], activeSource: 0, secondSource: -1, second: {},
     currentIdx: 0, settings: {}, site: '', title: '' };

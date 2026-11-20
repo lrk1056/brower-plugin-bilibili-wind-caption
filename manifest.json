@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "WindCaption · 观语听风字幕：为 B站 / YouTube 视频提供字幕列表、全文阅读、双语翻译、章节与导出。",
   "background": { "service_worker": "background.js" },
-  "permissions": ["storage", "activeTab", "scripting", "tabs", "unlimitedStorage"],
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "unlimitedStorage", "sidePanel"],
   "host_permissions": [
     "https://*.bilibili.com/*",
     "https://*.youtube.com/*",
@@ -21,6 +21,7 @@
     }
   },
   "options_page": "options/options.html",
+  "side_panel": { "default_path": "sidepanel/sidepanel.html" },
   "commands": {
     "copy-subtitles": {
       "suggested_key": { "default": "Ctrl+Shift+C", "mac": "Command+Shift+C" },
