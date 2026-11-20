@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vCaptions 复刻 · 页面原型 v1</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-logo">VC</span>
+      <span class="brand-name">vCaptions 复刻</span>
+      <span class="brand-badge">原型 v1</span>
+    </div>
+    <nav class="topnav">
+      <button class="nav-btn active" data-screen="video">视频页面板</button>
+      <button class="nav-btn" data-screen="settings">设置页</button>
+      <button class="nav-btn" data-screen="flow">功能地图</button>
+    </nav>
+    <div class="topbar-right">
+      <label class="mini-label">显示形态</label>
+      <select id="mode-select">
+        <option value="embed">嵌入页面</option>
+        <option value="float">悬浮窗</option>
+        <option value="side">侧边栏</option>
+      </select>
+      <label class="mini-label">站点</label>
+      <select id="site-select">
+        <option value="bilibili">Bilibili</option>
+        <option value="youtube">YouTube</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- ============ SCREEN: VIDEO PAGE ============ -->
+  <section class="screen active" id="screen-video">
+    <div class="stage" id="stage">
+      <!-- simulated video page -->
+      <div class="fake-page">
+        <div class="fake-sitebar">
+          <div class="fake-logo" id="site-logo">bilibili</div>
+          <div class="fake-nav">首页　番剧　直播　游戏中心</div>
+          <div class="fake-search">搜索你感兴趣的视频</div>
+        </div>
+        <div class="fake-main">
+          <div class="fake-video" id="fake-video">
+            <div class="fake-player-bg"></div>
+            <div class="fake-player-title" id="video-title">【示例视频】如何系统设计一个推荐系统 · 第 1 讲</div>
+            <div class="fake-player-meta" id="video-meta">UP 主：示例频道　·　时长 24:36　·　已对接站点</div>
+            <div class="fake-controls">
+              <button class="fc-btn" id="fc-play">▶</button>
+              <span class="fc-time" id="fc-time">03:24 / 24:36</span>
+              <div class="fc-progress"><div class="fc-progress-fill" id="fc-fill" style="width:14%"></div></div>
+              <button class="fc-btn" id="fc-vol">🔊</button>
+              <button class="fc-btn" id="fc-cc">CC</button>
+            </div>
+          </div>
+          <div class="fake-info">
+            <h2 id="fake-info-title">示例视频标题 · 字幕列表演示</h2>
+            <p>这是一个用于演示插件面板如何嵌入页面的占位区域。点击左侧面板中的任意字幕，视频时间会跳转并高亮当前句。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PLUGIN PANEL ============ -->
+      <aside class="panel" id="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <span class="dot-live"></span>
+            <span>字幕列表</span>
+            <span class="panel-sub" id="panel-site-tag">Bilibili</span>
+          </div>
+          <div class="panel-actions">
+            <button class="icon-btn" id="btn-view" title="切换视图">▤</button>
+            <button class="icon-btn" id="btn-fold" title="折叠面板">⌃</button>
+            <button class="icon-btn" id="btn-more" title="更多操作">⋯</button>
+          </div>
+        </div>
+
+        <!-- meta strip -->
+        <div class="meta-strip" id="meta-strip">
+          <span class="chip" id="chip-lang">字幕：中文</span>
+          <span class="chip" id="chip-second">第二字幕：关闭</span>
+          <span class="chip chip-ghost" id="chip-count">共 42 条</span>
+        </div>
+
+        <!-- search bar -->
+        <div class="search-row">
+          <input id="search-input" type="text" placeholder="搜索字幕 / 筛选内容（回车搜索）">
+          <button class="btn-mini" id="btn-search">搜索</button>
+          <button class="btn-mini ghost" id="btn-clear-search">清除</button>
+        </div>
+
+        <!-- chapter progress strip -->
+        <div class="chapter-strip" id="chapter-strip">
+          <div class="chapter-strip-head">
+            <span>章节进度</span>
+            <span class="muted" id="chapter-curr">第 2 / 5 章 · 架构总览</span>
+          </div>
+          <div class="chapter-track" id="chapter-track">
+            <div class="chapter-seg" style="flex:3"></div>
+            <div class="chapter-seg active" style="flex:4"></div>
+            <div class="chapter-seg" style="flex:3"></div>
+            <div class="chapter-seg" style="flex:3"></div>
+            <div class="chapter-seg" style="flex:2"></div>
+          </div>
+        </div>
+
+        <!-- tabs -->
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="chapter">章节</button>
+          <button class="tab" data-tab="search">搜索</button>
+          <button class="tab" data-tab="translate">翻译</button>
+          <button class="tab" data-tab="subtitle">字幕</button>
+          <button class="tab" data-tab="download">下载</button>
+          <button class="tab-more" id="tab-reorder" title="拖动排序 / 显隐">⚙</button>
+        </div>
+
+        <!-- ===== TAB: SUBTITLE (default shown via JS on load we keep last active? use subtitle default) ===== -->
+        <div class="tab-content" data-content="subtitle">
+          <div class="subtitle-toolbar">
+            <div class="view-seg">
+              <button data-view="list" class="active">字幕</button>
+              <button data-view="article">全文</button>
+            </div>
+            <button class="btn-mini" id="btn-multiselect">多选</button>
+            <button class="btn-mini ghost" id="btn-expand">展开/折叠全部</button>
+            <button class="btn-mini ghost" id="btn-scroll">回到当前</button>
+            <span class="toolbar-spacer"></span>
+            <span class="view-label" id="view-label">字幕视图</span>
+          </div>
+          <div class="view-hint" id="view-hint">ⓘ 字幕视图：每条带时间戳，点击跳转、可多选与展开折叠</div>
+          <div class="multiselect-bar hidden" id="multiselect-bar">
+            <span id="sel-count">已选 0 / 42</span>
+            <button class="btn-mini" id="btn-sel-all">全选</button>
+            <button class="btn-mini ghost" id="btn-sel-none">全不选</button>
+            <button class="btn-mini ghost" id="btn-sel-invert">反选</button>
+            <button class="btn-mini primary" id="btn-sel-copy">复制</button>
+            <button class="btn-mini primary" id="btn-sel-translate">翻译</button>
+          </div>
+          <div class="subtitle-list" id="subtitle-list">
+            <!-- items rendered by JS -->
+          </div>
+          <div class="panel-foot">
+            <button class="btn-mini" id="btn-copy-all">复制全部</button>
+            <button class="btn-mini primary" id="btn-quick-download">快捷下载</button>
+          </div>
+        </div>
+
+        <!-- ===== TAB: CHAPTER ===== -->
+        <div class="tab-content hidden" data-content="chapter">
+          <div class="section-head">
+            <h3>章节</h3>
+            <button class="btn-mini primary" id="btn-gen-chapter">生成章节</button>
+          </div>
+          <div class="chapter-gen-opts">
+            <label><input type="checkbox" checked> 包含描述</label>
+            <label><input type="checkbox" checked> 包含段落</label>
+            <select><option>目标语言：中文</option><option>English</option></select>
+          </div>
+          <div class="session-status" id="chapter-session">
+            <span class="status-dot ok"></span> 已完成 · 5 章
+            <span class="muted">生成进度 100%</span>
+          </div>
+          <div class="chapter-list" id="chapter-list">
+            <div class="chapter-item" data-time="0"><span class="ch-idx">01</span><div><b>00:00 开场与背景</b><small>介绍推荐系统的整体目标</small></div><button class="btn-mini ghost">跳转</button></div>
+            <div class="chapter-item active" data-time="204"><span class="ch-idx">02</span><div><b>03:24 架构总览</b><small>召回、粗排、精排三层结构</small></div><button class="btn-mini ghost">跳转</button></div>
+            <div class="chapter-item" data-time="600"><span class="ch-idx">03</span><div><b>10:00 召回策略</b><small>协同过滤与向量召回</small></div><button class="btn-mini ghost">跳转</button></div>
+            <div class="chapter-item" data-time="900"><span class="ch-idx">04</span><div><b>15:00 排序模型</b><small>特征工程与模型选型</small></div><button class="btn-mini ghost">跳转</button></div>
+            <div class="chapter-item" data-time="1200"><span class="ch-idx">05</span><div><b>20:00 总结与答疑</b><small>关键结论回顾</small></div><button class="btn-mini ghost">跳转</button></div>
+          </div>
+          <div class="chapter-nav-row">
+            <button class="btn-mini" id="btn-prev-chapter">← 上一章</button>
+            <button class="btn-mini" id="btn-next-chapter">下一章 →</button>
+            <button class="btn-mini ghost" id="btn-float-chapter">悬浮章节列表</button>
+          </div>
+        </div>
+
+        <!-- ===== TAB: SEARCH ===== -->
+        <div class="tab-content hidden" data-content="search">
+          <div class="section-head"><h3>搜索结果</h3><span class="muted" id="search-count">请输入关键词</span></div>
+          <input id="search-tab-input" type="text" placeholder="请输入关键词开始搜索" class="big-input">
+          <div class="search-results" id="search-results">
+            <div class="empty-state">输入关键词后在此显示匹配的字幕</div>
+          </div>
+        </div>
+
+        <!-- ===== TAB: TRANSLATE ===== -->
+        <div class="tab-content hidden" data-content="translate">
+          <div class="section-head"><h3>翻译</h3><span class="status-pill" id="translate-status">未开始</span></div>
+          <div class="field-row">
+            <label>翻译服务</label>
+            <select id="translate-service"><option>AI 翻译（默认）</option><option>Google 翻译</option><option>小牛翻译</option><option>DeepL 翻译</option></select>
+          </div>
+          <div class="field-row">
+            <label>目标语言</label>
+            <select id="translate-lang"><option>英语</option><option>日语</option><option>中文</option></select>
+          </div>
+          <label class="check-row"><input type="checkbox" id="chk-second"> 显示第二字幕（双语对照）</label>
+          <label class="check-row"><input type="checkbox"> 修正语音识别错误</label>
+          <button class="btn-block primary" id="btn-translate-now">立即翻译</button>
+          <div class="translate-progress hidden" id="translate-progress">
+            <div class="progress-head"><span>翻译进度</span><span id="translate-pct">0%</span></div>
+            <div class="progress-track"><div class="progress-fill" id="translate-fill" style="width:0%"></div></div>
+            <div class="session-ops">
+              <button class="btn-mini" id="btn-trans-pause">暂停</button>
+              <button class="btn-mini ghost" id="btn-trans-retry">重试失败</button>
+              <button class="btn-mini danger" id="btn-trans-delete">删除译文</button>
+            </div>
+          </div>
+          <div class="section-head sub"><h4>章节翻译</h4><button class="btn-mini" id="btn-chapter-translate">翻译章节</button></div>
+          <div class="muted small">将章节标题与描述翻译为目标语言，含进度与状态。</div>
+        </div>
+
+        <!-- ===== TAB: DOWNLOAD ===== -->
+        <div class="tab-content hidden" data-content="download">
+          <div class="section-head"><h3>复制 / 下载</h3></div>
+          <div class="field-row"><label>文件格式</label><select id="dl-format"><option>TXT</option><option>MD</option></select></div>
+          <div class="field-row"><label>导出类型</label><select id="dl-type"><option>文稿（带时间）</option><option>全文（紧凑）</option><option>SRT 字幕</option><option>VTT 字幕</option><option>LRC 歌词</option></select></div>
+          <div class="check-grid">
+            <label><input type="checkbox" checked> 包含时间戳</label>
+            <label><input type="checkbox" checked> 包含章节段落结构</label>
+            <label><input type="checkbox"> 包含第二字幕</label>
+            <label><input type="checkbox"> 无水印下载</label>
+          </div>
+          <button class="btn-block" id="btn-preview">内容预览</button>
+          <div class="preview-box hidden" id="preview-box">
+            <div class="preview-head">内容预览 <span class="muted">（超长仅显示前 1000 字符）</span></div>
+            <pre id="preview-text"></pre>
+          </div>
+          <div class="download-ops">
+            <button class="btn-block primary" id="btn-download">下载</button>
+            <button class="btn-block" id="btn-copy">复制</button>
+          </div>
+          <div class="muted small">浏览器快捷键：复制 Ctrl+Shift+C · 下载 Ctrl+Shift+D</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN: SETTINGS ============ -->
+  <section class="screen hidden" id="screen-settings">
+    <div class="settings-wrap">
+      <div class="settings-side">
+        <h2>设置</h2>
+        <a data-settings="general" class="active">通用配置</a>
+        <a data-settings="display">显示配置</a>
+        <a data-settings="translate">翻译服务</a>
+        <a data-settings="shortcut">快捷键</a>
+        <a data-settings="website">网站配置</a>
+      </div>
+      <div class="settings-main">
+        <div class="settings-section" data-section="general">
+          <h2>通用配置</h2>
+          <div class="setting-item"><div><b>自动插入字幕列表</b><p>打开 B站/YouTube 视频时自动插入面板</p></div><input type="checkbox" checked></div>
+          <div class="setting-item"><div><b>自动展开</b><p>视频有字幕时自动展开字幕列表</p></div><input type="checkbox" checked></div>
+          <div class="setting-item"><div><b>自动折叠</b><p>视频字幕消失时自动折叠列表</p></div><input type="checkbox" checked></div>
+          <div class="setting-item"><div><b>智能标点</b><p>按字幕语言自动补句间标点（中/英/日）</p></div><input type="checkbox" checked></div>
+          <div class="setting-item"><div><b>界面语言</b><p>简体中文 / English / 日本語</p></div><select><option>简体中文</option><option>English</option><option>日本語</option></select></div>
+          <div class="setting-item"><div><b>主题</b></div><select><option>跟随系统</option><option>浅色</option><option>深色</option></select></div>
+        </div>
+        <div class="settings-section hidden" data-section="display">
+          <h2>显示配置</h2>
+          <div class="setting-item"><div><b>默认显示位置</b><p>嵌入页面 / 悬浮窗 / 侧边栏</p></div><select><option>嵌入页面</option><option>悬浮窗</option><option>侧边栏</option></select></div>
+          <div class="setting-grid">
+            <label>默认 X 坐标 <input type="number" value="100"></label>
+            <label>默认 Y 坐标 <input type="number" value="100"></label>
+            <label>默认宽度 <input type="number" value="400"></label>
+            <label>默认高度 <input type="number" value="600"></label>
+          </div>
+          <div class="setting-item"><div><b>显示密度</b></div><select><option>标准</option><option>紧凑</option><option>宽松</option></select></div>
+          <div class="setting-item"><div><b>字体大小</b><p>12 / 13 / 14 / 15(默认) / 16 / 18 / 20 px</p></div><select><option>15px (默认)</option><option>16px</option><option>18px</option></select></div>
+          <div class="setting-item"><div><b>条纹色（奇偶行异色）</b></div><input type="checkbox" checked></div>
+          <h3>字幕条（B站）</h3>
+          <div class="setting-item"><div><b>显示位置</b></div><select><option>下方</option><option>上方</option></select></div>
+          <div class="setting-item"><div><b>显示内容</b><p>章节进度条 / 章节详情条 / 字幕条</p></div><button class="btn-mini">配置</button></div>
+        </div>
+        <div class="settings-section hidden" data-section="translate">
+          <h2>翻译服务</h2>
+          <p class="muted">可配置多个服务，创建后类型不可修改。</p>
+          <div class="service-card">
+            <div class="service-head"><b>AI 翻译（默认）</b><span class="status-pill ok">已启用</span></div>
+            <div class="field-row"><label>服务类型</label><span>AI 翻译（OpenAI 兼容）</span></div>
+            <div class="field-row"><label>API 地址</label><input value="https://api.openai.com/v1"></div>
+            <div class="field-row"><label>API Key</label><input type="password" value="sk-••••••••"></div>
+            <div class="field-row"><label>模型</label><select><option>gpt-4o-mini</option><option>deepseek-chat</option><option>自定义</option></select></div>
+            <button class="btn-mini">测试连通性</button>
+          </div>
+          <div class="service-list-mini">
+            <div>Google 翻译 <span class="muted">需 Google API Key</span> <button class="btn-mini">编辑</button></div>
+            <div>小牛翻译 <span class="muted">App ID + API Key</span> <button class="btn-mini">编辑</button></div>
+            <div>DeepL 翻译 <button class="btn-mini">编辑</button></div>
+          </div>
+          <button class="btn-mini primary" id="btn-add-service">+ 新增翻译服务</button>
+          <h3>AI 服务（用于章节生成 / 总结）</h3>
+          <p class="muted">同样为 OpenAI 兼容协议，支持 DeepSeek / Gemini / Ollama 等。</p>
+        </div>
+        <div class="settings-section hidden" data-section="shortcut">
+          <h2>快捷键配置</h2>
+          <p class="muted">点击右侧录制组合键；冲突会自动移除旧配置。</p>
+          <div class="shortcut-table" id="shortcut-table"></div>
+          <button class="btn-mini" id="btn-reset-shortcuts">恢复默认</button>
+        </div>
+        <div class="settings-section hidden" data-section="website">
+          <h2>网站配置</h2>
+          <div class="setting-item"><div><b>当前网址</b><p id="current-url">https://www.bilibili.com/video/BVxxxx</p></div><span class="status-pill ok">此站点已适配</span></div>
+          <div class="setting-item"><div><b>显示位置</b></div><select><option>嵌入页面</option><option>悬浮窗</option><option>侧边栏</option></select></div>
+          <div class="setting-item"><div><b>布局类型</b></div><select><option>单栏布局</option><option>左右布局</option><option>左中右布局</option><option>上下布局</option></select></div>
+          <div class="setting-item"><div><b>面板位置</b></div><select><option>右侧</option><option>左侧</option><option>上方</option><option>下方</option></select></div>
+          <p class="muted small">修改显示位置后自动刷新网页。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN: FLOW MAP ============ -->
+  <section class="screen hidden" id="screen-flow">
+    <div class="flow-wrap">
+      <h1>功能地图（本次复刻范围）</h1>
+      <p class="muted">仅 B站 / YouTube；无笔记 / AI 对话 / 精调 / 样式 Tab / VIP 与新标签页。</p>
+      <div class="flow-grid" id="flow-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============ TOAST ============ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ============ MODAL: TAB ORDER ============ -->
+  <div class="modal-mask hidden" id="modal-mask">
+    <div class="modal">
+      <div class="modal-head"><h3>功能 Tab 配置</h3><button class="icon-btn" id="modal-close">×</button></div>
+      <p class="muted small">拖动调整顺序，勾选控制显隐。本次范围为 5 个 Tab。</p>
+      <div class="reorder-list">
+        <div class="reorder-item"><span class="drag">≡</span><input type="checkbox" checked> 章节</div>
+        <div class="reorder-item"><span class="drag">≡</span><input type="checkbox" checked> 搜索</div>
+        <div class="reorder-item"><span class="drag">≡</span><input type="checkbox" checked> 翻译</div>
+        <div class="reorder-item"><span class="drag">≡</span><input type="checkbox" checked> 字幕</div>
+        <div class="reorder-item"><span class="drag">≡</span><input type="checkbox" checked> 下载</div>
+      </div>
+      <button class="btn-block primary" id="modal-save">保存</button>
+    </div>
+  </div>
+
+</div>
+<script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "WindCaption · 观语听风字幕",
+  "version": "1.0.0",
+  "description": "WindCaption · 观语听风字幕：为 B站 / YouTube 视频提供字幕列表、全文阅读、双语翻译、章节与导出。",
+  "background": { "service_worker": "background.js" },
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "unlimitedStorage"],
+  "host_permissions": [
+    "https://*.bilibili.com/*",
+    "https://*.youtube.com/*",
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options/options.html",
+  "commands": {
+    "copy-subtitles": {
+      "suggested_key": { "default": "Ctrl+Shift+C", "mac": "Command+Shift+C" },
+      "description": "复制全部字幕（当前下载格式）"
+    },
+    "download-subtitles": {
+      "suggested_key": { "default": "Ctrl+Shift+D", "mac": "Command+Shift+D" },
+      "description": "下载全部字幕（当前下载格式）"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.bilibili.com/*", "https://*.youtube.com/*"],
+      "js": ["lib/util.js", "lib/storage.js", "lib/protocol.js", "content/adapters.js", "content/main.js"],
+      "css": ["content/inject.css"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["panel/panel.html", "panel/panel.css", "panel/panel.js", "lib/*.js", "icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

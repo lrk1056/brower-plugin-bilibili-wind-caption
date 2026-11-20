@@ -1,0 +1,45 @@
+/* 注入到页面的样式：面板 iframe + 字幕悬浮条 */
+#vc-panel-frame.vc-panel {
+  position: fixed;
+  z-index: 2147483646;
+  border: 1px solid #2d3340;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.45);
+  background: #171a21;
+  transition: all .18s ease;
+}
+#vc-panel-frame.vc-panel.mode-embed { width: 420px; height: 600px; right: 20px; top: 80px; }
+#vc-panel-frame.vc-panel.mode-embed.folded { height: 56px; }
+#vc-panel-frame.vc-panel.mode-float { width: 420px; height: 520px; right: 40px; top: 120px; resize: both; overflow: hidden; }
+#vc-panel-frame.vc-panel.mode-side { right: 0; top: 0; width: 380px; height: 100vh; border-radius: 0; border-top: 0; border-bottom: 0; }
+#vc-panel-frame.vc-panel.mode-side.folded { height: 56px; }
+
+.vc-caption-bubble {
+  position: fixed;
+  left: 50%;
+  bottom: 76px;
+  transform: translateX(-50%);
+  z-index: 2147483645;
+  max-width: 720px;
+  min-width: 240px;
+  text-align: center;
+  pointer-events: none;
+}
+.vc-cb-chapter {
+  display: inline-block;
+  font-size: 12px;
+  color: #4dd0e1;
+  background: rgba(20,24,32,.82);
+  padding: 3px 10px;
+  border-radius: 6px 6px 0 0;
+}
+.vc-cb-text {
+  display: block;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #fff;
+  background: rgba(0,0,0,.78);
+  padding: 8px 16px;
+  border-radius: 0 0 10px 10px;
+  text-shadow: 0 1px 3px #000;
+}

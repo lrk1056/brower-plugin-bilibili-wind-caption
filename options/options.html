@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WindCaption · 观语听风字幕 · 设置</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="side">
+    <div class="logo">VC · 设置</div>
+    <a data-sec="general" class="active">通用配置</a>
+    <a data-sec="display">显示配置</a>
+    <a data-sec="services">AI / 翻译服务</a>
+    <a data-sec="site">网站配置</a>
+    <div class="side-foot"><button id="btn-reset-all" class="mini danger">恢复默认设置</button></div>
+  </aside>
+  <main class="main">
+    <section data-panel="general">
+      <h1>通用配置</h1>
+      <div class="item"><div><b>自动插入字幕列表</b><p>打开 B站 / YouTube 视频时自动插入面板</p></div><input type="checkbox" id="g-autoInsert"></div>
+      <div class="item"><div><b>自动展开</b><p>检测到字幕时自动展开面板</p></div><input type="checkbox" id="g-autoExpand"></div>
+      <div class="item"><div><b>自动折叠</b><p>字幕消失时自动折叠面板</p></div><input type="checkbox" id="g-autoFold"></div>
+      <div class="item"><div><b>智能标点</b><p>按语言自动补句间标点（中 / 英 / 日）</p></div><input type="checkbox" id="g-smartPunctuation"></div>
+      <div class="item"><div><b>界面语言</b></div><select id="g-lang"><option value="zh">简体中文</option><option value="en">English</option><option value="ja">日本語</option></select></div>
+      <div class="item"><div><b>主题</b></div><select id="g-theme"><option value="system">跟随系统</option><option value="dark">深色</option><option value="light">浅色</option></select></div>
+      <div class="item"><div><b>字幕条（B站悬浮字幕）</b><p>在视频上显示当前字幕的悬浮条</p></div><input type="checkbox" id="g-subtitleBar"></div>
+    </section>
+
+    <section data-panel="display" class="hidden">
+      <h1>显示配置</h1>
+      <div class="item"><div><b>默认显示位置</b></div><select id="d-position"><option value="embed">嵌入页面</option><option value="float">悬浮窗</option><option value="side">侧边栏</option></select></div>
+      <div class="item"><div><b>嵌入面板位置</b></div><select id="d-side"><option value="right">右侧</option><option value="left">左侧</option></select></div>
+      <div class="grid4">
+        <label>X 坐标<input type="number" id="d-x"></label>
+        <label>Y 坐标<input type="number" id="d-y"></label>
+        <label>宽度<input type="number" id="d-w"></label>
+        <label>高度<input type="number" id="d-h"></label>
+      </div>
+      <div class="item"><div><b>显示密度</b></div><select id="d-density"><option value="compact">紧凑</option><option value="standard">标准</option><option value="comfortable">宽松</option></select></div>
+      <div class="item"><div><b>字体大小</b></div><select id="d-font"><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>18</option><option>20</option></select></div>
+      <div class="item"><div><b>条纹色（奇偶行异色）</b></div><input type="checkbox" id="d-striped"></div>
+      <h2>字幕条内容</h2>
+      <div class="item"><div><b>章节进度条</b></div><input type="checkbox" id="b-chProgress"></div>
+      <div class="item"><div><b>章节详情条</b></div><input type="checkbox" id="b-chDetail"></div>
+      <div class="item"><div><b>字幕条</b></div><input type="checkbox" id="b-subtitle"></div>
+      <h2>功能 Tab 显隐</h2>
+      <div class="tab-toggles" id="tab-toggles"></div>
+    </section>
+
+    <section data-panel="services" class="hidden">
+      <h1>AI / 翻译服务</h1>
+      <p class="tip">自带 Key（BYOK），OpenAI 兼容协议。可添加 OpenAI / DeepSeek / Gemini / Ollama / 小牛 / DeepL 等。章节生成与翻译需要在此配置。</p>
+      <div id="service-list"></div>
+      <button class="primary" id="btn-add-service">+ 新增服务</button>
+      <div class="item"><div><b>默认 AI 服务（章节生成 / 翻译）</b></div><select id="default-ai"></select></div>
+      <div class="item"><div><b>默认翻译服务</b></div><select id="default-translate"></select></div>
+    </section>
+
+    <section data-panel="site" class="hidden">
+      <h1>网站配置</h1>
+      <p class="tip">仅适配 Bilibili 与 YouTube。以下为当前页面可保存的覆盖配置（按 host + path 存储）。</p>
+      <div class="item"><div><b>当前网址</b><p id="cur-url">—</p></div><span class="pill">已适配</span></div>
+      <div class="item"><div><b>显示位置</b></div><select id="s-position"><option value="">跟随默认</option><option value="embed">嵌入页面</option><option value="float">悬浮窗</option><option value="side">侧边栏</option></select></div>
+      <button id="btn-save-site">保存当前网站配置</button>
+    </section>
+
+    <div class="savebar"><span id="save-status"></span><button class="primary" id="btn-save">保存设置</button></div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="../lib/util.js"></script>
+<script src="../lib/storage.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

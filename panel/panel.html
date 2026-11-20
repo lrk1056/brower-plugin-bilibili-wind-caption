@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WindCaption · 观语听风字幕</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<div id="root">
+  <header class="head">
+    <div class="head-title"><span class="dot"></span><b>WindCaption</b><span class="site-tag" id="site-tag">—</span></div>
+    <div class="head-ops">
+      <button class="ic" id="btn-fold" title="折叠/展开">⌃</button>
+      <button class="ic" id="btn-options" title="设置">⚙</button>
+    </div>
+  </header>
+
+  <div class="meta" id="meta">
+    <span class="chip" id="chip-source">字幕：—</span>
+    <span class="chip" id="chip-second">第二字幕：关闭</span>
+    <span class="chip ghost" id="chip-count">共 0 条</span>
+    <span class="meta-spacer"></span>
+    <button class="mini refresh-btn" id="btn-refresh" title="重新拉取字幕">刷新字幕</button>
+  </div>
+
+  <div class="chapter-strip" id="chapter-strip">
+    <div class="cs-head"><span>章节进度</span><span class="muted" id="chapter-curr">—</span></div>
+    <div class="cs-track" id="chapter-track"></div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="subtitle">字幕</button>
+    <button class="tab hidden" data-tab="chapter">章节</button>
+    <button class="tab hidden" data-tab="translate">翻译</button>
+    <button class="tab" data-tab="appearance">设置</button>
+  </nav>
+
+  <!-- 字幕 -->
+  <section class="tabpane active" data-pane="subtitle">
+    <div class="toolbar">
+      <div class="seg" id="view-seg">
+        <button data-view="list" class="active">字幕</button>
+        <button data-view="article">全文</button>
+      </div>
+      <button class="mini" id="btn-search-toggle" title="搜索字幕">🔍 搜索</button>
+      <button class="mini" id="btn-multi">多选</button>
+      <button class="mini ghost" id="btn-resume">回到当前</button>
+      <span class="spacer"></span>
+      <span class="mode-label" id="mode-label">嵌入</span>
+    </div>
+    <div class="search-inline hidden" id="search-inline">
+      <input id="search" type="text" placeholder="输入关键词搜索字幕（实时匹配，点击结果跳转）">
+      <span class="search-count" id="search-count"></span>
+      <button class="mini ghost" id="btn-clear-search">清除</button>
+    </div>
+    <div class="hint" id="hint">ⓘ 每条带时间戳，点击跳转、支持多选</div>
+    <div class="multi-bar hidden" id="multi-bar">
+      <span id="sel-count">已选 0 / 0</span>
+      <button class="mini" id="sel-all">全选</button>
+      <button class="mini ghost" id="sel-none">全不选</button>
+      <button class="mini ghost" id="sel-invert">反选</button>
+      <button class="mini primary" id="sel-copy">复制</button>
+      <button class="mini primary" id="sel-translate">翻译</button>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="foot">
+      <button class="mini" id="btn-copy-all">复制全部</button>
+      <button class="mini" id="btn-export-toggle">导出 ▾</button>
+      <button class="mini primary" id="btn-quick-dl">快捷下载</button>
+    </div>
+    <div class="export-pop hidden" id="export-pop">
+      <div class="export-pop-head"><b>导出字幕</b><button class="icon-btn" id="export-pop-close">×</button></div>
+      <div class="export-tip">点击下列格式即可下载</div>
+      <div class="export-list">
+        <button class="export-item" data-type="textWithTime"><span class="ei-name">文稿（带时间）</span><span class="ei-ext">.txt</span></button>
+        <button class="export-item" data-type="article"><span class="ei-name">全文（紧凑）</span><span class="ei-ext">.txt</span></button>
+        <button class="export-item" data-type="srt"><span class="ei-name">SRT 字幕</span><span class="ei-ext">.srt</span></button>
+        <button class="export-item" data-type="vtt"><span class="ei-name">VTT 字幕</span><span class="ei-ext">.vtt</span></button>
+        <button class="export-item" data-type="lrc"><span class="ei-name">LRC 歌词</span><span class="ei-ext">.lrc</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 章节 -->
+  <section class="tabpane hidden" data-pane="chapter">
+    <div class="section-head"><h3>章节</h3><button class="mini primary" id="btn-gen-chapter">生成章节</button></div>
+    <div class="gen-opts">
+      <label><input type="checkbox" id="ch-desc" checked> 包含描述</label>
+      <label><input type="checkbox" id="ch-para" checked> 包含段落</label>
+      <select id="ch-lang"><option>中文</option><option>英语</option><option>日语</option></select>
+    </div>
+    <div class="status-line" id="ch-status">暂无章节 · 可点击“生成章节”</div>
+    <div class="chapter-list" id="chapter-list"></div>
+    <div class="chapter-nav">
+      <button class="mini" id="ch-prev">← 上一章</button>
+      <button class="mini" id="ch-next">下一章 →</button>
+    </div>
+  </section>
+
+  <!-- 翻译 -->
+  <section class="tabpane hidden" data-pane="translate">
+    <div class="section-head"><h3>翻译</h3><span class="status-pill" id="tr-status">未开始</span></div>
+    <div class="field"><label>目标语言</label><select id="tr-lang"><option>中文</option><option>英语</option><option>日语</option></select></div>
+    <label class="check"><input type="checkbox" id="tr-second"> 显示第二字幕（双语对照）</label>
+    <label class="check"><input type="checkbox" id="tr-fix"> 修正语音识别错误</label>
+    <button class="block primary" id="btn-translate">立即翻译</button>
+    <div class="progress-box hidden" id="progress-box">
+      <div class="progress-head"><span>翻译进度</span><span id="progress-pct">—</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+    <p class="muted small">翻译服务与 AI 服务请在设置页配置（OpenAI 兼容协议，可接 DeepSeek / Gemini / Ollama）。</p>
+  </section>
+
+  <!-- 设置（外观） -->
+  <section class="tabpane hidden" data-pane="appearance">
+    <div class="section-head"><h3>外观设置</h3></div>
+    <div class="setting-block">
+      <div class="setting-label">主题色</div>
+      <div class="seg setting-seg" id="theme-seg">
+        <button data-theme="light">亮色</button>
+        <button data-theme="dark">暗色</button>
+        <button data-theme="auto">自动</button>
+      </div>
+      <div class="setting-help">自动 = 跟随系统外观</div>
+    </div>
+    <div class="setting-block">
+      <div class="setting-label">字体大小 <span class="setting-val" id="font-val">13px</span></div>
+      <div class="slider-row">
+        <span class="slider-min">12</span>
+        <input type="range" id="font-range" min="12" max="20" step="1" value="13">
+        <span class="slider-max">20</span>
+      </div>
+      <div class="setting-help">限制在 12–20px，避免排版溢出</div>
+    </div>
+    <div class="setting-block">
+      <div class="setting-label">行高 <span class="setting-val" id="line-val">1.55</span></div>
+      <div class="slider-row">
+        <span class="slider-min">1.2</span>
+        <input type="range" id="line-range" min="1.2" max="2" step="0.05" value="1.55">
+        <span class="slider-max">2.0</span>
+      </div>
+      <div class="setting-help">限制在 1.2–2.0，避免排版溢出</div>
+    </div>
+    <div class="setting-preview" id="setting-preview">
+      <div class="pv-sent cur">这是当前播放的字幕句子，用于预览样式效果。</div>
+      <div class="pv-sent">这是下一句字幕，主题色、字号与行高会实时生效。</div>
+    </div>
+    <button class="block" id="btn-reset-appearance">恢复默认</button>
+  </section>
+
+  <div class="toast" id="toast"></div>
+</div>
+<script src="../lib/util.js"></script>
+<script src="../lib/protocol.js"></script>
+<script src="panel.js"></script>
+</body>
+</html>
