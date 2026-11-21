@@ -27,7 +27,8 @@
     panelMode: 'embed',
     folded: false,
     embedHeight: 0,       // 用户拖拽设定的嵌入高度；0 = 用默认高度
-    autoScroll: true
+    autoScroll: true,
+    lastHasSubtitle: null // 自动展开/折叠用的上一次"是否有字幕句"状态
   };
   // 嵌入高度范围：最低 = 现有默认高度（保持行为不变）；
   // 最高 = 面板固定区域 + 15 行字幕（单行 = 字号*行高 + .sub 上下 padding 14px）。
@@ -52,6 +53,9 @@
     console.log('[vc] init start v2-bgload', location.href);
     state.settings = await store.getSettings();
     state.panelMode = state.settings.display.position || 'embed';
+    // 面板初始折叠态由"自动展开"开关决定：不勾选 → 默认折叠；勾选 → 默认展开。
+    // 默认 autoExpand=true，故默认行为仍是展开，不影响既有体验。
+    state.folded = !state.settings.autoExpand;
     // 恢复用户拖拽保存的嵌入高度（由 SET_EMBED_HEIGHT 写入 display.embedHeight）
     const savedH = Number((state.settings.display || {}).embedHeight);
     if (savedH > 0) state.embedHeight = savedH;
@@ -60,6 +64,7 @@
     if (state.settings.autoInsert) injectPanel();
     bindVideoEvents();
     listenCommands();
+    watchSettingsChanges();
     if (state.settings.subtitleBar.enabled) ensureCaptionBubble();
 
     const saved = await store.getVideo(state.tid, state.vid);
@@ -180,6 +185,22 @@
       if (now !== last) { last = now; location.reload(); } // 真正换视频/分P才重载重建
     }, 1500);
   }
+  // 监听设置页跨标签改动，实时同步字幕条开关/自动折叠等，无需刷新视频页
+  function watchSettingsChanges() {
+    if (!extAlive() || !chrome.storage || !chrome.storage.onChanged) return;
+    try {
+      chrome.storage.onChanged.addListener(changes => {
+        if (!extAlive() || !changes.settings || !changes.settings.newValue) return;
+        const prevBar = !!(state.settings && state.settings.subtitleBar && state.settings.subtitleBar.enabled);
+        state.settings = changes.settings.newValue;
+        const nowBar = !!(state.settings.subtitleBar && state.settings.subtitleBar.enabled);
+        if (nowBar) { ensureCaptionBubble(); updateBubble(); }
+        else if (prevBar && captionBubble) captionBubble.style.display = 'none';
+        pushState();
+      });
+    } catch (e) { console.debug('[vc] watchSettingsChanges skipped', e); }
+  }
+
   function bindVideoEvents() {
     watchVideoSwitch();
     const v = video();
@@ -237,6 +258,7 @@
       return;
     }
     ensureCaptionBubble();
+    if (!captionBubble) return; // body 尚未就绪，下次 timeupdate 再试
     const s = currentSentences()[state.currentIdx];
     captionBubble.style.display = s ? 'block' : 'none';
     if (!s) return;
@@ -551,7 +573,22 @@
       embedHeight: state.embedHeight, embedRange: embedHeightRange()
     };
   }
+  // 自动展开/折叠：依据"是否有可显示字幕句"的边界变化切换折叠态。
+  // 只在 无→有（autoExpand 展开）/ 有→无（autoFold 折叠）时各触发一次，
+  // 不会在字幕持续存在期间反复覆盖用户的手动折叠。
+  function syncAutoFold() {
+    const s = state.settings || {};
+    const has = currentSentences().length > 0;
+    const prev = state.lastHasSubtitle;
+    if (prev === null) { state.lastHasSubtitle = has; return; } // 首次只记录，不折叠新打开的面板
+    if (prev !== has) {
+      if (has && s.autoExpand) state.folded = false;
+      else if (!has && s.autoFold) state.folded = true;
+      state.lastHasSubtitle = has;
+    }
+  }
   async function pushState() {
+    syncAutoFold();
     const payload = await statePayload();
     proto.emit('STATE', payload);          // iframe 模式
     proto.pushEvent('STATE', payload);     // 侧边栏模式（chrome 广播）

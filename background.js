@@ -228,3 +228,11 @@ chrome.commands.onCommand.addListener(async (command) => {
     chrome.tabs.sendMessage(tab.id, { action: 'SHORTCUT_EXPORT', kind: command });
   }
 });
+
+/* 点击浏览器工具栏上固定的扩展图标 → 打开设置页。
+ * manifest 的 action 未设置 default_popup，故点击会触发 onClicked；
+ * 用官方 openOptionsPage 而非 window.open，避免被 Chrome 弹窗拦截。 */
+chrome.action.onClicked.addListener(async () => {
+  try { await chrome.runtime.openOptionsPage(); }
+  catch (e) { console.warn('[vc-bg] open options from toolbar icon failed', e); }
+});

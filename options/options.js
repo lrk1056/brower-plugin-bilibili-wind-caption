@@ -27,7 +27,6 @@
     $('#g-autoExpand').checked = !!s.autoExpand;
     $('#g-autoFold').checked = !!s.autoFold;
     $('#g-smartPunctuation').checked = !!s.smartPunctuation;
-    $('#g-lang').value = s.lang || 'zh';
     $('#g-theme').value = (s.theme === 'auto' ? 'system' : (s.theme || 'gray'));
     applyPageTheme(s.theme);
     $('#g-subtitleBar').checked = !!(s.subtitleBar && s.subtitleBar.enabled);
@@ -122,7 +121,6 @@
     settings.autoExpand = $('#g-autoExpand').checked;
     settings.autoFold = $('#g-autoFold').checked;
     settings.smartPunctuation = $('#g-smartPunctuation').checked;
-    settings.lang = $('#g-lang').value;
     settings.theme = $('#g-theme').value === 'system' ? 'auto' : $('#g-theme').value;
     settings.subtitleBar.enabled = $('#g-subtitleBar').checked;
     settings.subtitleBar.showChapterProgress = $('#b-chProgress').checked;
@@ -138,6 +136,8 @@
     $$('#tab-toggles input').forEach(i => settings.tabs[i.dataset.tab] = i.checked);
     settings.defaultAiService = $('#default-ai').value;
     settings.defaultTranslateService = $('#default-translate').value;
+    // 界面语言固定为中文：不再暴露该选项，也不写回 lang（由默认值 zh 兜底）
+    delete settings.lang;
     await store.saveSettings(settings);
     $('#save-status').textContent = '✓ 已保存 ' + new Date().toLocaleTimeString();
     toast('设置已保存');
