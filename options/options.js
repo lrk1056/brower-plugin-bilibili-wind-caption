@@ -7,11 +7,13 @@
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 1600); }
   function uid() { return 'svc_' + Math.random().toString(36).slice(2, 8); }
-  // 应用设置页主题（与面板一致：light/dark/auto）
+  // 应用设置页主题（与面板一致：gray/light/dark/auto）
   function applyPageTheme(theme) {
-    let t = theme || 'auto';
+    let t = theme || 'gray';
     if (t === 'system') t = 'auto';
-    if (!['light','dark','auto'].includes(t)) t = 'auto';
+    if (!['light','dark','gray','auto'].includes(t)) t = 'gray';
+    // 旧默认 auto 且未显式选过主题 → 迁移到新默认 gray
+    if (t === 'auto' && settings && !settings.themePinned) t = 'gray';
     document.documentElement.setAttribute('data-theme', t);
   }
 
@@ -26,7 +28,7 @@
     $('#g-autoFold').checked = !!s.autoFold;
     $('#g-smartPunctuation').checked = !!s.smartPunctuation;
     $('#g-lang').value = s.lang || 'zh';
-    $('#g-theme').value = s.theme || 'system';
+    $('#g-theme').value = (s.theme === 'auto' ? 'system' : (s.theme || 'gray'));
     applyPageTheme(s.theme);
     $('#g-subtitleBar').checked = !!(s.subtitleBar && s.subtitleBar.enabled);
 
@@ -99,7 +101,10 @@
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
   // 主题下拉实时预览
-  $('#g-theme').addEventListener('change', e => applyPageTheme(e.target.value));
+  $('#g-theme').addEventListener('change', e => {
+    if (settings) settings.themePinned = true;
+    applyPageTheme(e.target.value);
+  });
 
   $('#btn-add-service').addEventListener('click', () => {
     settings.services = settings.services || [];
@@ -118,7 +123,7 @@
     settings.autoFold = $('#g-autoFold').checked;
     settings.smartPunctuation = $('#g-smartPunctuation').checked;
     settings.lang = $('#g-lang').value;
-    settings.theme = $('#g-theme').value;
+    settings.theme = $('#g-theme').value === 'system' ? 'auto' : $('#g-theme').value;
     settings.subtitleBar.enabled = $('#g-subtitleBar').checked;
     settings.subtitleBar.showChapterProgress = $('#b-chProgress').checked;
     settings.subtitleBar.showChapterDetail = $('#b-chDetail').checked;

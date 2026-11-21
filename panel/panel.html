@@ -11,7 +11,7 @@
   <header class="head">
     <div class="head-title"><span class="dot"></span><b>WindCaption</b><span class="site-tag" id="site-tag">—</span></div>
     <div class="head-ops">
-      <button class="ic" id="btn-fold" title="折叠/展开">⌃</button>
+      <button class="ic" id="btn-fold" title="折叠面板" aria-label="折叠面板" aria-expanded="true"><svg id="fold-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10 L8 6 L12 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <button class="ic" id="btn-options" title="设置">⚙</button>
     </div>
   </header>
@@ -69,6 +69,9 @@
       <button class="mini" id="btn-export-toggle">导出 ▾</button>
       <button class="mini primary" id="btn-quick-dl">快捷下载</button>
     </div>
+    <div class="resize-grip" id="resize-grip" title="拖拽调整面板高度（最多 15 行字幕）">
+      <span class="rg-bar"></span>
+    </div>
     <div class="export-pop hidden" id="export-pop">
       <div class="export-pop-head"><b>导出字幕</b><button class="icon-btn" id="export-pop-close">×</button></div>
       <div class="export-tip">点击下列格式即可下载</div>
@@ -118,11 +121,12 @@
     <div class="setting-block">
       <div class="setting-label">主题色</div>
       <div class="seg setting-seg" id="theme-seg">
+        <button data-theme="gray">灰色</button>
         <button data-theme="light">亮色</button>
         <button data-theme="dark">暗色</button>
         <button data-theme="auto">自动</button>
       </div>
-      <div class="setting-help">自动 = 跟随系统外观</div>
+      <div class="setting-help">灰色为默认；自动 = 跟随系统外观</div>
     </div>
     <div class="setting-block">
       <div class="setting-label">字体大小 <span class="setting-val" id="font-val">13px</span></div>

@@ -1,5 +1,14 @@
-/* ===== 主题变量：默认暗色 ===== */
-:root,[data-theme="dark"]{
+/* ===== 主题变量 ===== */
+/* 默认灰色：对齐 B站右栏模块（弹幕列表 #f1f2f3 / AI总结卡 #f7f8fa /
+   主文字 #17191d / 次文字 #8c8d8e / 分割线 #e4e5e7 / AI图标蓝 #1c42ff） */
+:root,[data-theme="gray"]{
+  --bg:#f1f2f3;--s2:#f7f8fa;--s3:#e4e5e7;--bd:#e4e5e7;--tx:#17191d;--mu:#8c8d8e;
+  --pr:#d9544c;--pr-btn:#cf4a43;--on-pr:#ffffff;--ac:#3b4ee0;--ok:#3d966d;--wn:#b98220;--dg:#cf4a43;
+  --mark-bg:#ffe14d;--mark-tx:#1a1300;
+  --cur-tx:#cf4a43;
+}
+/* 暗色：保持原有行为不变 */
+[data-theme="dark"]{
   --bg:#171a21;--s2:#1e222b;--s3:#262b36;--bd:#2d3340;--tx:#e6e9ef;--mu:#8b93a5;
   --pr:#ff6b6b;--pr-btn:#e8554d;--on-pr:#ffffff;--ac:#4dd0e1;--ok:#4caf78;--wn:#f5a623;--dg:#e86a6a;
   --mark-bg:#ffe14d;--mark-tx:#1a1300;
@@ -27,6 +36,16 @@
     --mark-bg:#ffe14d;--mark-tx:#1a1300;--cur-tx:#ff5a4d;
   }
 }
+/* 灰色主题：柔化少量硬编码高亮/阴影，强调色跟随 B站 AI 图标蓝 #3b4ee0 */
+[data-theme="gray"] .head{background:#f7f8fa}
+[data-theme="gray"] .mini:hover{background:var(--s3)}
+[data-theme="gray"] .search-inline,
+[data-theme="gray"] .hint{background:rgba(59,78,224,.05)}
+[data-theme="gray"] .sub.cur{background:rgba(217,84,76,.10)}
+[data-theme="gray"] .sub.sel,
+[data-theme="gray"] .ch.on{background:rgba(59,78,224,.09)}
+[data-theme="gray"] .para.on{background:rgba(217,84,76,.07)}
+[data-theme="gray"] .export-pop{box-shadow:0 4px 18px rgba(23,25,29,.10)}
 /* 字号 / 行高（有限区间，见设置面板 12–20px、1.2–2.0） */
 :root{--sub-font:13px;--sub-line:1.55}
 *{box-sizing:border-box}
@@ -42,8 +61,12 @@ button{cursor:pointer}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
 .site-tag{font-size:10px;color:var(--mu);background:var(--s2);padding:2px 6px;border-radius:5px}
 .head-ops{margin-left:auto;display:flex;gap:2px}
-.ic{background:none;border:0;color:var(--mu);width:28px;height:28px;border-radius:6px;font-size:15px}
+.ic{background:none;border:0;color:var(--mu);width:28px;height:28px;border-radius:6px;font-size:15px;display:flex;align-items:center;justify-content:center;padding:0}
 .ic:hover{background:var(--s2);color:var(--tx)}
+.ic:active{transform:scale(.92)}
+/* 折叠箭头：描边 chevron，随 aria-expanded 平滑旋转 180°（展开朝上 / 折叠朝下） */
+#fold-chevron{width:15px;height:15px;display:block;transition:transform .2s ease}
+#btn-fold[aria-expanded="false"] #fold-chevron{transform:rotate(180deg)}
 .meta{display:flex;gap:5px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--bd);flex-wrap:wrap}
 .chip{font-size:10px;background:var(--s3);padding:3px 7px;border-radius:5px}
 .chip.ghost{background:none;border:1px solid var(--bd);color:var(--mu)}
@@ -95,6 +118,13 @@ button{cursor:pointer}
 .para .p2 .para-sec{font-style:italic}
 .foot{display:flex;gap:7px;padding:9px 10px;border-top:1px solid var(--bd)}
 .foot .mini{flex:1}
+/* 底部拖拽手柄：仅嵌入模式显示，向下拖增高、向上拖降低，限幅由内容脚本负责 */
+.resize-grip{display:none;flex:none;height:16px;align-items:center;justify-content:center;
+  cursor:ns-resize;touch-action:none;user-select:none;border-top:1px solid var(--bd);background:var(--bg)}
+.resize-grip.show{display:flex}
+.resize-grip:hover,.resize-grip.dragging{background:var(--s2)}
+.resize-grip .rg-bar{width:34px;height:3px;border-radius:3px;background:var(--mu);opacity:.65}
+.resize-grip:hover .rg-bar,.resize-grip.dragging .rg-bar{background:var(--ac);opacity:1}
 /* 导出弹层：锚定在底部按钮上方 */
 .tabpane[data-pane="subtitle"]{position:relative}
 .export-pop{position:absolute;left:8px;right:8px;bottom:52px;z-index:30;background:var(--bg);

@@ -26,8 +26,21 @@
     frame: null,
     panelMode: 'embed',
     folded: false,
+    embedHeight: 0,       // 用户拖拽设定的嵌入高度；0 = 用默认高度
     autoScroll: true
   };
+  // 嵌入高度范围：最低 = 现有默认高度（保持行为不变）；
+  // 最高 = 面板固定区域 + 15 行字幕（单行 = 字号*行高 + .sub 上下 padding 14px）。
+  // 同时不超过视口，避免面板溢出屏幕。
+  function embedHeightRange() {
+    const min = Math.min(520, Math.max(240, window.innerHeight * 0.7));
+    const fs = Number((state.settings && state.settings.fontSize) || 13);
+    const lh = Number((state.settings && state.settings.subLineHeight) || 1.55);
+    const row = fs * lh + 14;
+    const chrome = 250; // head/meta/章节条/tabs/工具栏/提示/底栏之和（约值）
+    const max = Math.max(min, Math.min(window.innerHeight - 24, Math.round(chrome + row * 15)));
+    return { min, max };
+  }
   let pausedScrollUntil = 0;
   let captionBubble = null;
   let initStarted = false;
@@ -39,6 +52,9 @@
     console.log('[vc] init start v2-bgload', location.href);
     state.settings = await store.getSettings();
     state.panelMode = state.settings.display.position || 'embed';
+    // 恢复用户拖拽保存的嵌入高度（由 SET_EMBED_HEIGHT 写入 display.embedHeight）
+    const savedH = Number((state.settings.display || {}).embedHeight);
+    if (savedH > 0) state.embedHeight = savedH;
 
     // ★ 面板必须最先注入：字幕 fetch 可能很慢甚至挂起，绝不能阻塞面板出现
     if (state.settings.autoInsert) injectPanel();
@@ -296,7 +312,8 @@
     if (state.site !== 'bilibili' || state.panelMode !== 'embed' || !state.host) return;
     const doc = document.documentElement;
     if (!doc || !document.body) return;
-    const height = state.folded ? 56 : Math.min(520, Math.max(240, window.innerHeight * 0.7));
+    const range = embedHeightRange();
+    const height = state.folded ? 56 : Math.min(range.max, Math.max(range.min, state.embedHeight || range.min));
     doc.style.setProperty('--vc-embed-panel-height', height + 'px');
     doc.style.setProperty('--vc-embed-panel-space', (height + 12) + 'px');
     document.body.classList.add('vc-bili-embed-active');
@@ -530,7 +547,8 @@
       currentIdx: state.currentIdx, playing: state.playing,
       settings: state.settings,
       needLoginSubtitle: !!(await store.get('needLoginSubtitle', false)),
-      panelMode: state.panelMode, folded: state.folded
+      panelMode: state.panelMode, folded: state.folded,
+      embedHeight: state.embedHeight, embedRange: embedHeightRange()
     };
   }
   async function pushState() {
@@ -561,7 +579,39 @@
       }
       return { ok: true };
     });
-    proto.on('TOGGLE_FOLD', () => { state.folded = !state.folded; applyLayout(); return { ok: true, folded: state.folded }; });
+    proto.on('TOGGLE_FOLD', async () => {
+      state.folded = !state.folded;
+      applyLayout();
+      await pushState();   // 把最新 folded 广播给面板，折叠图标才能同步切换
+      return { ok: true, folded: state.folded };
+    });
+    // 拖拽过程中的实时预览：只改 CSS 变量与定位，不写盘、不广播 STATE，避免列表重渲染/频闪。
+    proto.on('PREVIEW_EMBED_HEIGHT', p => {
+      const r = embedHeightRange();
+      let h = Number(p && p.height);
+      if (!isFinite(h) || h <= 0) h = r.min;
+      h = Math.round(Math.min(r.max, Math.max(r.min, h)));
+      state.embedHeight = h;
+      applyLayout();
+      return { ok: true, height: h };
+    });
+    proto.on('SET_EMBED_HEIGHT', async p => {
+      const r = embedHeightRange();
+      let h = Number(p && p.height);
+      if (!isFinite(h) || h <= 0) h = r.min;
+      h = Math.round(Math.min(r.max, Math.max(r.min, h)));
+      state.embedHeight = h;
+      // 持久化到 display.embedHeight
+      try {
+        state.settings = state.settings || (await store.getSettings());
+        state.settings.display = state.settings.display || {};
+        state.settings.display.embedHeight = h;
+        await store.saveSettings(state.settings);
+      } catch (e) { console.debug('[vc] save embed height skipped', e); }
+      applyLayout();
+      await pushState();
+      return { ok: true, height: h, range: r };
+    });
     proto.on('PAUSE_SCROLL', p => { pausedScrollUntil = Date.now() + (p.ms || 2000); return { ok: true }; });
     proto.on('SET_SOURCE', async p => {
       state.activeSource = p.idx;

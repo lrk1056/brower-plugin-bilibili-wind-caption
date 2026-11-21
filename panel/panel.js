@@ -41,7 +41,7 @@
   function titleAt(ms) { return U.chapterTitleAt(S.chapters, ms) || '字幕'; }
 
   /* ---------- 外观设置（主题 / 字号 / 行高） ---------- */
-  const APPEARANCE = { theme: 'auto', fontSize: 13, lineHeight: 1.55 };
+  const APPEARANCE = { theme: 'gray', fontSize: 13, lineHeight: 1.55 };
   function applyAppearance() {
     const root = document.documentElement;
     root.setAttribute('data-theme', APPEARANCE.theme);
@@ -66,9 +66,11 @@
   function loadAppearanceFromSettings() {
     if (appearanceLoaded || !S.settings || !Object.keys(S.settings).length) return;
     appearanceLoaded = true;
-    let t = S.settings.theme || 'auto';
+    let t = S.settings.theme || 'gray';
     if (t === 'system') t = 'auto';
-    if (!['light','dark','auto'].includes(t)) t = 'auto';
+    if (!['light','dark','gray','auto'].includes(t)) t = 'gray';
+    // 旧默认 auto 且用户未显式选过主题 → 迁移到新默认 gray；显式选择 auto 的行为保留
+    if (t === 'auto' && !S.settings.themePinned) t = 'gray';
     APPEARANCE.theme = t;
     let fs = Number(S.settings.fontSize);
     if (!fs || fs < 12 || fs > 20) fs = 13;
@@ -80,6 +82,7 @@
   }
   $$('#theme-seg button').forEach(b => b.addEventListener('click', () => {
     APPEARANCE.theme = b.dataset.theme;
+    if (S.settings) S.settings.themePinned = true;
     applyAppearance(); saveAppearance();
   }));
   $('#font-range').addEventListener('input', e => {
@@ -93,7 +96,8 @@
   });
   $('#line-range').addEventListener('change', () => saveAppearance());
   $('#btn-reset-appearance').addEventListener('click', () => {
-    APPEARANCE.theme = 'auto'; APPEARANCE.fontSize = 13; APPEARANCE.lineHeight = 1.55;
+    APPEARANCE.theme = 'gray'; APPEARANCE.fontSize = 13; APPEARANCE.lineHeight = 1.55;
+    if (S.settings) S.settings.themePinned = false;
     applyAppearance(); saveAppearance(); toast('已恢复默认外观');
   });
 
@@ -112,6 +116,13 @@
     renderChapters(); renderList(); renderChapterStrip();
     $('#mode-label').textContent = ({ embed: '嵌入', float: '悬浮', side: '侧边栏' })[S.panelMode] || '';
     $('#tr-second').checked = S.secondSource >= 0 || Object.keys(S.second).length > 0;
+    // 折叠状态 → 图标旋转由 CSS 依据 aria-expanded 驱动（展开朝上 / 折叠朝下）
+    const folded = !!S.folded;
+    $('#btn-fold').setAttribute('aria-expanded', folded ? 'false' : 'true');
+    $('#btn-fold').title = folded ? '展开面板' : '折叠面板';
+    $('#btn-fold').setAttribute('aria-label', folded ? '展开面板' : '折叠面板');
+    // 拖拽手柄只在 B站嵌入模式显示（其他模式高度由 CSS/悬浮窗设置控制）
+    $('#resize-grip').classList.toggle('show', !folded && S.panelMode === 'embed' && S.site === 'bilibili');
   }
 
   function renderChapters() {
@@ -279,8 +290,58 @@
     renderAll(); scrollCurrent();
   }
   $('#view-seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
-  $('#btn-fold').addEventListener('click', () => call('TOGGLE_FOLD'));
+  $('#btn-fold').addEventListener('click', async () => {
+    const res = await call('TOGGLE_FOLD');
+    // 立即同步图标，不等 STATE 往返（内容脚本也会广播 STATE 做兜底对齐）
+    if (res && typeof res.folded === 'boolean') {
+      S.folded = res.folded;
+      const folded = res.folded;
+      $('#btn-fold').setAttribute('aria-expanded', folded ? 'false' : 'true');
+      $('#btn-fold').title = folded ? '展开面板' : '折叠面板';
+      $('#btn-fold').setAttribute('aria-label', folded ? '展开面板' : '折叠面板');
+    }
+  });
   $('#btn-options').addEventListener('click', () => call('OPEN_OPTIONS'));
+
+  /* ---------- 底部拖拽手柄：调整嵌入高度 ---------- */
+  (function initResizeGrip() {
+    const grip = $('#resize-grip');
+    let dragging = false, startY = 0, startH = 0, lastSent = 0, raf = 0, submitted = true;
+    const bounds = () => (S.embedRange && S.embedRange.min != null)
+      ? S.embedRange
+      : { min: 240, max: 820 };
+    const currentH = () => (S.embedHeight && S.embedHeight > 0) ? S.embedHeight : bounds().min;
+
+    grip.addEventListener('pointerdown', e => {
+      if (!grip.classList.contains('show')) return;
+      dragging = true; submitted = false; startY = e.clientY; startH = currentH(); lastSent = startH;
+      grip.classList.add('dragging');
+      try { grip.setPointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault();
+    });
+    grip.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const b = bounds();
+      const delta = e.clientY - startY;          // 下拖为正 → 增高，上拖为负 → 降低
+      const h = Math.round(Math.min(b.max, Math.max(b.min, startH + delta)));
+      if (h === lastSent) return;
+      lastSent = h;
+      S.embedHeight = h;                          // 本地即时反馈
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => { raf = 0; call('PREVIEW_EMBED_HEIGHT', { height: h }); });
+      e.preventDefault();
+    });
+    const finish = e => {
+      if (!dragging) return;
+      dragging = false;
+      grip.classList.remove('dragging');
+      try { grip.releasePointerCapture(e.pointerId); } catch (_) {}
+      // 松手时提交并存盘（pointerup/pointercancel 幂等，只提交一次）
+      if (!submitted) { submitted = true; call('SET_EMBED_HEIGHT', { height: lastSent }); }
+    };
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', finish);
+  })();
 
   /* ---------- 字幕栏操作 ---------- */
   $('#btn-multi').addEventListener('click', e => {
