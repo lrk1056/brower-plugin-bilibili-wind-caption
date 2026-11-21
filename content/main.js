@@ -6,6 +6,11 @@
   const adapter = VC.adapters.detect();
   const TOKEN = proto.makeToken();
   const CAPTURE_EVENT = '__vc_capture_subtitle__';
+  // 扩展被重载后，旧标签页里残留的内容脚本上下文已失效；所有定时行为立即停摆。
+  function extAlive() {
+    try { return !!(window.chrome && chrome.runtime && chrome.runtime.id); }
+    catch (e) { return false; }
+  }
 
   const state = {
     tid: adapter.tid(), vid: adapter.vid(),
@@ -25,9 +30,12 @@
   };
   let pausedScrollUntil = 0;
   let captionBubble = null;
+  let initStarted = false;
 
   /* ---------- 持久化与恢复 ---------- */
   async function init() {
+    if (initStarted) return;   // loadedmetadata 等事件会重复触发，必须只初始化一次
+    initStarted = true;
     console.log('[vc] init start v2-bgload', location.href);
     state.settings = await store.getSettings();
     state.panelMode = state.settings.display.position || 'embed';
@@ -48,10 +56,10 @@
       pushState();
     }
     // 站点原生字幕：B站/YouTube 字幕 API 可能稍后才可用，异步加载 + 重试
-    loadNativeSubtitles().catch(e => console.warn('[vc] loadNativeSubtitles error', e));
+    loadNativeSubtitles().catch(e => console.debug('[vc] loadNativeSubtitles error', e));
     if (!state.sources.length) {
       [2000, 5000, 9000].forEach(delay => setTimeout(() => {
-        loadNativeSubtitles().catch(e => console.warn('[vc] retry error', e));
+        loadNativeSubtitles().catch(e => console.debug('[vc] retry error', e));
       }, delay));
     }
   }
@@ -62,12 +70,12 @@
     if (state.site === 'bilibili') {
       // B站字幕.download 在后台完成（带 Referer、无 CORS 限制），最可靠
       try {
-        const res = await chrome.runtime.sendMessage({ action: 'LOAD_BILI_SUBTITLES', bvid: state.tid });
+        const res = await bgSend({ action: 'LOAD_BILI_SUBTITLES', bvid: state.tid });
         console.log('[vc] bg LOAD_BILI_SUBTITLES:', res && res.ok, 'sources:', res && res.sources && res.sources.length, res && res.error || '');
         if (res && res.diagnostics) console.log('[vc] bg diagnostics:', JSON.stringify(res.diagnostics));
         if (res && res.ok && res.sources) native = res.sources;
         if (res && res.needLogin) await VC.store.set({ needLoginSubtitle: true });
-      } catch (e) { console.warn('[vc] bg subtitle load failed', e); }
+      } catch (e) { console.debug('[vc] bg subtitle load failed', e); }
     }
     if (!native.length) native = await adapter.subtitleSources();
     console.log('[vc] native sources:', native.length, native.map(n => n.url));
@@ -99,12 +107,12 @@
         content = await resp.text();
         console.log('[vc] subtitle content length:', content ? content.length : 0, 'head:', content ? content.slice(0, 80) : '');
       } catch (e) {
-        console.warn('[vc] direct fetch failed, try background proxy', src.url, e);
+        console.debug('[vc] direct fetch failed, try background proxy', src.url, e);
         try {
-          const r = await chrome.runtime.sendMessage({ action: 'FETCH_TEXT', url: src.url });
+          const r = await bgSend({ action: 'FETCH_TEXT', url: src.url });
           console.log('[vc] bg fetch result:', r && r.ok, r && r.status);
           if (r && r.ok) content = r.text;
-        } catch (e2) { console.warn('[vc] bg fetch also failed', e2); }
+        } catch (e2) { console.debug('[vc] bg fetch also failed', e2); }
       }
     }
     if (!content && src.file) {
@@ -116,7 +124,7 @@
       ? U.mergeSentences(sentencesRaw, src.lang || state.settings.lang)
       : sentencesRaw;
     console.log('[vc] merged sentences:', sentences.length);
-    if (!sentences.length) { console.warn('[vc] addSource aborted: 0 sentences'); return; }
+    if (!sentences.length) { console.debug('[vc] addSource: no sentences in payload'); return; }
     const name = src.name || src.lang || `字幕 ${state.sources.length + 1}`;
     const key = src.url || name + ':' + sentences.length;
     if (state.sources.some(s => s.key === key)) return;
@@ -137,15 +145,33 @@
   /* ---------- 视频控制 ---------- */
   function video() { return document.querySelector('video'); }
   function currentSentences() { return (state.sources[state.activeSource] || {}).sentences || []; }
+  let hrefWatchStarted = false;
+  // 只按“视频身份”判断：BV/av 号 + 分 P。忽略 spm_id_from / vd_source 等追踪参数，
+  // 否则 B站切集或追加埋点参数会被误判为换片，触发整页 reload 让面板反复消失重建。
+  function videoIdentity() {
+    const bv = (location.pathname.match(/(BV[0-9A-Za-z]{10}|\/av\d+)/) || [])[1] || location.pathname;
+    let p = '1';
+    try { p = new URLSearchParams(location.search).get('p') || '1'; } catch (e) {}
+    return bv + '|p=' + p;
+  }
+  function watchVideoSwitch() {
+    if (hrefWatchStarted) return;
+    hrefWatchStarted = true;
+    let last = videoIdentity();
+    setInterval(() => {
+      if (!extAlive()) return;
+      const now = videoIdentity();
+      if (now !== last) { last = now; location.reload(); } // 真正换视频/分P才重载重建
+    }, 1500);
+  }
   function bindVideoEvents() {
+    watchVideoSwitch();
     const v = video();
     if (!v) {
-      // 视频尚未出现：定时重试绑定 + 校正嵌入位置
-      let tries = 0;
+      // 视频晚于 content script 出现：等待后再绑定（嵌入位置由全局定时校正负责）
       const t = setInterval(() => {
-        repositionEmbedHost();
-        if (video() || ++tries > 20) { clearInterval(t); if (video()) bindVideoEvents(); }
-      }, 1000);
+        if (video()) { clearInterval(t); bindVideoEvents(); }
+      }, 500);
       return;
     }
     v.addEventListener('timeupdate', () => {
@@ -158,11 +184,6 @@
     });
     v.addEventListener('play', () => { state.playing = true; pushState(); updateBubble(); });
     v.addEventListener('pause', () => { state.playing = false; pushState(); updateBubble(); });
-    // 监听 SPA 切换视频
-    let last = location.href;
-    setInterval(() => {
-      if (location.href !== last) { last = location.href; location.reload(); }
-    }, 1500);
     v.addEventListener('loadedmetadata', () => { if (!state.sources.length) init(); });
   }
   function jumpTo(idx) {
@@ -187,9 +208,12 @@
   /* ---------- 字幕悬浮条（B站特性，默认关闭，可在设置开启） ---------- */
   function ensureCaptionBubble() {
     if (captionBubble) return;
+    const parent = (video() && video().parentElement) || document.body;
+    if (!parent) return; // document_start 早期 body 尚未就绪
     captionBubble = document.createElement('div');
     captionBubble.className = 'vc-caption-bubble';
-    (video() ? video().parentElement : document.body).appendChild(captionBubble);
+    try { parent.appendChild(captionBubble); }
+    catch (e) { captionBubble = null; }
   }
   function updateBubble() {
     if (!state.settings.subtitleBar.enabled) {
@@ -207,42 +231,33 @@
   }
 
   /* ---------- 面板注入（三种显示模式） ---------- */
-  // 找到视频区域容器：面板要覆盖在视频右侧（弹幕层 danmukuBox 所在区域）之上，
-  // 而不是插到整个播放器下方。优先取弹幕层的父容器，其次视频包裹层。
+  // B站视频页：host 必须挂在 body（Vue 根节点 #app 之外），不能插进
+  // .right-container-inner。后者是 B站 Vue 组件管理的子节点序列，插入外来节点
+  // 会让 Vue 异步 patch 抛 HierarchyRequestError，中断推荐列表初始化（封面灰块）。
+  // 视觉位置由 positionSideColumnHost() 用文档坐标 + CSS 预留空白实现。
   function findEmbedAnchor() {
-    // 1) 最可靠：video 元素的直接父容器就是视频画面区，
-    //    面板作为绝对定位覆盖层放进去，天然与视频对齐、随页面滚动。
+    if (state.site === 'bilibili') {
+      const right = document.querySelector('.right-container-inner');
+      // 右栏尚未渲染：等下一轮，不退化到视频窗口
+      if (!right || !right.isConnected) return null;
+      return { container: document.body, before: null, sideColumn: true, right };
+    }
+    // 其他站点：覆盖视频区域（保持原行为）
     const v = document.querySelector('video');
     if (v) {
-      const p = v.parentElement;
-      // 若父容器太小（只是个包裹壳），再向上一级找有实际尺寸的容器
-      if (p && p.getBoundingClientRect().width > 200) return p;
-      if (p && p.parentElement) return p.parentElement;
-      return p;
+      let el = v.parentElement;
+      for (let i = 0; el && i < 4; i++, el = el.parentElement) {
+        const r = el.getBoundingClientRect();
+        if (r.width >= 240 && r.height >= 120) return { container: el, before: null, sideColumn: false };
+      }
+      if (v.parentElement) return { container: v.parentElement, before: null, sideColumn: false };
     }
-    // 2) 无 video 时：新播放器弹幕层父级
     const dm = document.querySelector('.bpx-player-dm-wrap, .bpx-player-video-dm, #danmukuBox');
-    if (dm) return dm.parentElement || dm;
-    // 3) 视频包裹层兜底
-    return document.querySelector('.video-container, .player-wrap, #playerWrap');
+    if (dm) return { container: dm.parentElement || dm, before: null, sideColumn: false };
+    const wrap = document.querySelector('.video-container, .player-wrap, #playerWrap');
+    return wrap ? { container: wrap, before: null, sideColumn: false } : null;
   }
 
-  function ensureEmbedHost() {
-    let host = document.getElementById('vc-embed-host');
-    if (host) return host;
-    host = document.createElement('div');
-    host.id = 'vc-embed-host';
-    const side = (state.settings.display && state.settings.display.panelSide) || 'right';
-    if (side === 'left') host.classList.add('side-left');
-    const anchor = findEmbedAnchor();
-    if (anchor) {
-      prepareEmbedAnchor(anchor, host);
-      anchor.appendChild(host);
-    } else {
-      document.body.appendChild(host);
-    }
-    return host;
-  }
   // 让锚点成为定位上下文，并避免 overflow:hidden 裁掉面板
   function prepareEmbedAnchor(anchor, host) {
     const cs = getComputedStyle(anchor);
@@ -253,19 +268,158 @@
     if (host.dataset.anchorWasStatic === '1') { anchor.style.position = ''; delete host.dataset.anchorWasStatic; }
     if (host.dataset.anchorOverflow !== undefined) { anchor.style.overflow = host.dataset.anchorOverflow; delete host.dataset.anchorOverflow; }
   }
-  // 视频元素可能晚于 content script 出现：定时把嵌入 host 移到视频区域容器
-  function repositionEmbedHost() {
+
+  // 判断 host 是否还在正确的父容器。
+  // B站 now 挂 body（Vue 根之外），只需确认父子关系；具体视口位置由
+  // positionSideColumnHost() 负责，不再用 .rcmd-tab 子节点顺序判断，
+  // 避免读取 Vue 正在 patch 的子节点序列。
+  function isHostWellPlaced(host, container) {
+    if (container === document.body) return true;
+    const kids = Array.prototype.slice.call(container.children);
+    const idx = kids.indexOf(host);
+    if (idx < 0) return false;
+    // 唯一必须修正的错位：被 B站重渲染挤到"推荐列表之后"（面板滑出可视区=消失）。
+    // 刻意容忍 idx=0 与 idx=1 的差异（UP主卡片之前/之后都可见、都在弹幕列表上方），
+    // 也不比较 before 节点身份——B站会频繁替换弹幕列表节点，严格比较会引发反复移动/iframe 重载/频闪。
+    let rcmd = -1;
+    for (let i = 0; i < kids.length; i++) {
+      if (kids[i].classList && kids[i].classList.contains('rcmd-tab')) { rcmd = i; break; }
+    }
+    if (rcmd >= 0) return idx < rcmd;
+    if (kids.length <= 1) return true;
+    return idx < kids.length - 1;
+  }
+
+  // B站：把 body 上的 host 摆到"UP主卡片下方、弹幕列表上方"的预留空白里。
+  // 只改 body/host 的样式和 CSS 变量，不增删 B站 Vue 容器内的任何节点。
+  function positionSideColumnHost(target) {
+    if (state.site !== 'bilibili' || state.panelMode !== 'embed' || !state.host) return;
+    const doc = document.documentElement;
+    if (!doc || !document.body) return;
+    const height = state.folded ? 56 : Math.min(520, Math.max(240, window.innerHeight * 0.7));
+    doc.style.setProperty('--vc-embed-panel-height', height + 'px');
+    doc.style.setProperty('--vc-embed-panel-space', (height + 12) + 'px');
+    document.body.classList.add('vc-bili-embed-active');
+
+    const right = (target && target.right && target.right.isConnected ? target.right : document.querySelector('.right-container-inner'));
+    if (!right || !right.isConnected) {
+      document.body.classList.add('vc-bili-embed-no-danmaku');
+      return;
+    }
+    // 只在直接子节点里找弹幕模块，和 CSS margin 规则的选择器保持一致。
+    let anchor = null;
+    const kids = Array.prototype.slice.call(right.children);
+    for (let i = 0; i < kids.length; i++) {
+      const el = kids[i];
+      if ((el.classList && (el.classList.contains('video-pod-above-modules') || el.classList.contains('danmaku-box'))) || el.id === 'danmukuBox') {
+        anchor = el; break;
+      }
+    }
+    const isDanmakuAnchor = !!anchor;
+    if (!anchor) {
+      for (let i = 0; i < kids.length; i++) {
+        if (kids[i].classList && kids[i].classList.contains('rcmd-tab')) { anchor = kids[i]; break; }
+      }
+    }
+    document.body.classList.toggle('vc-bili-embed-no-danmaku', !isDanmakuAnchor);
+
+    const r = right.getBoundingClientRect();
+    const up = right.querySelector('.up-panel-container');
+    let top;
+    if (anchor) {
+      // anchor 已含我们预留的 margin-top，减回去就是空白起点（UP主卡片下方）。
+      top = anchor.getBoundingClientRect().top + window.scrollY - height - 12;
+    } else if (up && up.parentElement === right) {
+      top = up.getBoundingClientRect().bottom + window.scrollY + 12;
+    } else {
+      top = r.top + window.scrollY + 12;
+    }
+    state.host.style.left = Math.round(r.left + window.scrollX) + 'px';
+    state.host.style.top = Math.round(top) + 'px';
+    state.host.style.width = Math.round(r.width) + 'px';
+  }
+
+  // 保证 host 在正确锚点、iframe 挂在其内。可被反复调用（幂等）。
+  // 已就位时只刷新 B站定位样式，绝不移动 host（移动 iframe 会重载、频闪）。
+  function ensureEmbedPlacement() {
+    if (!extAlive()) return; // 上下文失效后停止一切 DOM 操作
+    try { doEnsureEmbedPlacement(); }
+    catch (e) { console.debug('[vc] embed placement skipped', e); }
+  }
+  function doEnsureEmbedPlacement() {
     if (state.panelMode !== 'embed' || !state.frame) return;
-    const host = document.getElementById('vc-embed-host');
-    if (!host) return;
-    const anchor = findEmbedAnchor();
-    if (!anchor) return;
-    if (host.parentElement === anchor) return; // 已在正确位置
-    // 还原旧锚点
-    const old = host.parentElement;
-    if (old && old !== document.body) restoreAnchor(old, host);
-    prepareEmbedAnchor(anchor, host);
-    anchor.appendChild(host);
+    const f = state.frame;
+    const target = findEmbedAnchor();
+    if (!target || !target.container || !target.container.isConnected) return;
+    const { container } = target;
+    let before = target.before;
+    const wantSideClass = !!target.sideColumn;
+    if (f === container || f.contains(container)) return;
+    if (before && (before === f || f.contains(before))) before = null;
+
+    let host = (state.host && state.host.isConnected) ? state.host : document.getElementById('vc-embed-host');
+    // 防御：host 被塞进 iframe 内 / 与容器互为祖先，先摘除再重建
+    if (host && (host === container || host.contains(container))) { host.remove(); host = null; }
+
+    // 是否已就位：连接 + 父容器 + 模式类 + 位置（B站文档流模式才校验位置）
+    const structurallyOK = host && host.isConnected && host.parentElement === container &&
+      host.classList.contains('vc-side-column') === wantSideClass;
+    const inPlace = structurallyOK && (!wantSideClass || isHostWellPlaced(host, container));
+    if (inPlace) {
+      // 只保证 iframe 在 host 内；绝不移动 host（移动会重载 iframe）。
+      if (f.parentElement !== host && !f.contains(host)) {
+        try { host.appendChild(f); } catch (e) { console.debug('[vc] reattach skipped', e); }
+      }
+      if (wantSideClass) positionSideColumnHost(target);
+      return;
+    }
+
+    // before 兜底：目标弹幕列表缺失时，尽量插到 UP主卡片之后，避免落到右栏最顶部。
+    if (!before || before.parentElement !== container) {
+      const up = container.querySelector('.up-panel-container');
+      before = (up && up.parentElement === container && up.nextElementSibling) || null;
+    }
+
+    // host 结构正确但位置被 B站挤歪：复用 host 原位移动，不重建、不摘 iframe（尽量少重载）。
+    if (structurallyOK) {
+      try {
+        if (before && before.parentElement === container && before !== host) container.insertBefore(host, before);
+        else if (!before && container.lastElementChild !== host) container.appendChild(host);
+        if (f.parentElement !== host && !f.contains(host)) host.appendChild(f);
+        state.host = host;
+        if (wantSideClass) positionSideColumnHost(target);
+      } catch (e) { console.debug('[vc] reposition skipped', e); }
+      return;
+    }
+
+    // 需要搬迁/重建：先把 iframe 摘下，移动 host 时才不会出现层级环
+    try { if (f.parentElement) f.parentElement.removeChild(f); }
+    catch (e) { console.debug('[vc] detach frame failed', e); return; }
+    if (host && host.isConnected) {
+      const old = host.parentElement;
+      if (old && old !== document.body) restoreAnchor(old, host);
+      host.remove();
+    }
+
+    host = document.createElement('div');
+    host.id = 'vc-embed-host';
+    if (wantSideClass) {
+      host.classList.add('vc-side-column');
+    } else {
+      const side = (state.settings && state.settings.display && state.settings.display.panelSide) || 'right';
+      if (side === 'left') host.classList.add('side-left');
+      prepareEmbedAnchor(container, host);
+    }
+    try {
+      if (before && before.parentElement === container) container.insertBefore(host, before);
+      else container.appendChild(host);
+      host.appendChild(f); // appendChild 会自动把 f 从旧父节点移过来，无需预先 removeChild
+    } catch (e) {
+      console.debug('[vc] embed mount failed', e);
+      return;
+    }
+    state.host = host;
+    if (wantSideClass) positionSideColumnHost(target);
   }
 
   function injectPanel() {
@@ -273,12 +427,16 @@
     if (window !== window.top) { console.log('[vc] skip panel in iframe'); return; }
     if (state.panelMode === 'side') { openSidePanel(); return; } // 侧边栏用原生 sidePanel
     if (state.frame) return;
+    let panelUrl;
+    try { panelUrl = chrome.runtime.getURL('panel/panel.html'); }
+    catch (e) { console.debug('[vc] extension context invalid', e); return; }
     const frame = document.createElement('iframe');
     frame.id = 'vc-panel-frame';
-    frame.src = chrome.runtime.getURL('panel/panel.html') + '?token=' + encodeURIComponent(TOKEN);
+    frame.src = panelUrl + '?token=' + encodeURIComponent(TOKEN);
     frame.dataset.token = TOKEN;
     state.frame = frame;
     mountFrame(frame);
+    applyLayout(); // 挂载后立即套用模式样式，不等 iframe load（load 晚到或被阻塞时也能显示）
     frame.addEventListener('load', () => {
       console.log('[vc] panel iframe loaded, mode=', state.panelMode);
       proto.init({ role: 'content', target: frame.contentWindow, token: TOKEN });
@@ -287,11 +445,10 @@
     console.log('[vc] panel injected, mode=', state.panelMode);
   }
 
-  // 把 iframe 挂到对应容器（嵌入进页面流 / 悬浮固定）
+  // 把 iframe 挂到对应容器（嵌入视频区域 / 悬浮固定）
   function mountFrame(frame) {
     if (state.panelMode === 'embed') {
-      const host = ensureEmbedHost();
-      host.appendChild(frame);
+      ensureEmbedPlacement();
     } else {
       document.body.appendChild(frame);
     }
@@ -304,6 +461,13 @@
   }
   function applyLayout() {
     const f = state.frame;
+    // B站预留空白只在 embed 面板真实存在时启用；切到 float/side 或关闭面板后立即撤销。
+    if (document.body) {
+      document.body.classList.toggle('vc-bili-embed-active', state.site === 'bilibili' && state.panelMode === 'embed' && !!f);
+      if (!(state.site === 'bilibili' && state.panelMode === 'embed' && !!f)) {
+        document.body.classList.remove('vc-bili-embed-no-danmaku');
+      }
+    }
     if (!f) return;
     f.className = 'vc-panel mode-' + state.panelMode + (state.folded ? ' folded' : '');
     // 悬浮窗尺寸由设置决定
@@ -315,24 +479,29 @@
       f.style.width = ''; f.style.height = '';
     }
     // 模式切换时重新挂载到正确容器
-    const host = document.getElementById('vc-embed-host');
     if (state.panelMode === 'embed') {
-      if (!host || !f.parentElement || f.parentElement.id !== 'vc-embed-host') mountFrame(f);
+      ensureEmbedPlacement();
     } else if (f.parentElement && f.parentElement.id === 'vc-embed-host') {
       document.body.appendChild(f);
     }
   }
   applyLayout();
 
+  // B站播放器异步渲染、切片时会替换 DOM 节点；持续校正嵌入位置。
+  // 仅 embed 模式且有 frame 时生效，其他页面/模式零副作用。
+  setInterval(ensureEmbedPlacement, 1000);
+  window.addEventListener('pageshow', e => { if (e.persisted) ensureEmbedPlacement(); });
+  window.addEventListener('resize', () => { if (state.site === 'bilibili') ensureEmbedPlacement(); });
+
   // 侧边栏：原生 sidePanel（同时移除页面内 iframe）
   async function openSidePanel() {
     try {
-      await chrome.runtime.sendMessage({ action: 'OPEN_SIDEPANEL' });
+      await bgSend({ action: 'OPEN_SIDEPANEL' });
       console.log('[vc] side panel opened');
-    } catch (e) { console.warn('[vc] open sidepanel failed', e); }
+    } catch (e) { console.debug('[vc] open sidepanel failed', e); }
   }
   function closeSidePanel() {
-    try { chrome.runtime.sendMessage({ action: 'CLOSE_SIDEPANEL' }); } catch (e) {}
+    try { bgSend({ action: 'CLOSE_SIDEPANEL' }); } catch (e) {}
   }
   // 应用显示模式（含 iframe <-> sidePanel 切换）
   async function setPanelMode(mode) {
@@ -369,6 +538,11 @@
     proto.emit('STATE', payload);          // iframe 模式
     proto.pushEvent('STATE', payload);     // 侧边栏模式（chrome 广播）
     applyLayout();
+  }
+  // 统一的后台消息封装：扩展被重载后 chrome.runtime 上下文失效，避免未捕获 Promise 异常
+  async function bgSend(msg) {
+    try { return await chrome.runtime.sendMessage(msg); }
+    catch (e) { console.debug('[vc] bg message skipped', e); return null; }
   }
   function registerProtoHandlers() {
     proto.on('GET_STATE', () => statePayload());
@@ -411,14 +585,14 @@
     });
     proto.on('TRANSLATE', async p => {
       const sentences = currentSentences();
-      const res = await chrome.runtime.sendMessage({ action: 'AI_TRANSLATE', sentences, lang: p.lang });
+      const res = await bgSend({ action: 'AI_TRANSLATE', sentences, lang: p.lang });
       if (!res || !res.ok) return { ok: false, error: res && res.error || '翻译失败' };
       state.second = {};
       res.result.forEach((r, i) => { if (r && r.content) state.second[i] = { content: r.content }; });
       await persistData(); pushState(); return { ok: true };
     });
     proto.on('GEN_CHAPTERS', async p => {
-      const res = await chrome.runtime.sendMessage({ action: 'GENERATE_CHAPTERS', sentences: currentSentences(), opts: p.opts || {} });
+      const res = await bgSend({ action: 'GENERATE_CHAPTERS', sentences: currentSentences(), opts: p.opts || {} });
       if (!res || !res.ok) return { ok: false, error: res && res.error || '生成失败' };
       state.chapters = res.chapters;
       await persistData(); pushState(); return { ok: true };
@@ -461,8 +635,8 @@
     proto.on('SAVE_SETTINGS', async p => { await store.saveSettings(p.settings); state.settings = p.settings; pushState(); return { ok: true }; });
     proto.on('TOGGLE_PANEL', () => { state.frame ? removePanel() : injectPanel(); return { ok: true }; });
     proto.on('OPEN_OPTIONS', async () => {
-      try { await chrome.runtime.sendMessage({ action: 'OPEN_OPTIONS' }); }
-      catch (e) { console.warn('[vc] open options failed', e); }
+      try { await bgSend({ action: 'OPEN_OPTIONS' }); }
+      catch (e) { console.debug('[vc] open options failed', e); }
       return { ok: true };
     });
   }
@@ -483,7 +657,7 @@
 
   /* ---------- 浏览器快捷键 ---------- */
   function listenCommands() {
-    chrome.runtime.onMessage.addListener(msg => {
+    try { chrome.runtime.onMessage.addListener(msg => {
       if (msg.action === 'SHORTCUT_EXPORT') {
         proto.emit('SHORTCUT_EXPORT', { kind: msg.kind });
       } else if (msg.action === 'TOGGLE_PANEL') {
@@ -492,12 +666,12 @@
         // 侧边栏打开/关闭时同步
         if (msg.open) pushState();
       }
-    });
+    }); } catch (e) { console.debug('[vc] listenCommands failed', e); }
   }
 
   // 注册协议处理器（供 iframe 与 sidepanel 两条通道共用）
   registerProtoHandlers();
   proto.listenChromeForHandlers();
 
-  init();
+  init().catch(e => console.debug('[vc] init failed', e));
 })();
