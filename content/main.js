@@ -313,7 +313,7 @@
     const doc = document.documentElement;
     if (!doc || !document.body) return;
     const range = embedHeightRange();
-    const height = state.folded ? 56 : Math.min(range.max, Math.max(range.min, state.embedHeight || range.min));
+    const height = state.folded ? 44 : Math.min(range.max, Math.max(range.min, state.embedHeight || range.min));
     doc.style.setProperty('--vc-embed-panel-height', height + 'px');
     doc.style.setProperty('--vc-embed-panel-space', (height + 12) + 'px');
     document.body.classList.add('vc-bili-embed-active');

@@ -56,6 +56,9 @@ button{cursor:pointer}
 .hidden{display:none !important}
 .muted{color:var(--mu)}.small{font-size:11px}
 #root{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+/* 折叠态：只保留标题栏，与 B站栏目折叠一致（iframe 高度同为 44px，不露出任何内容） */
+#root.folded > :not(.head){display:none !important}
+#root.folded .head{border-bottom-color:transparent}
 .head{height:44px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--bd);flex:none;user-select:none}
 .head-title{display:flex;align-items:center;gap:7px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}

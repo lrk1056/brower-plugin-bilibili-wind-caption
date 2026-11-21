@@ -44,7 +44,7 @@
 #vc-embed-host.side-left #vc-panel-frame.vc-panel.mode-embed {
   right: auto; left: 0; border-radius: 0 6px 6px 0; box-shadow: 4px 0 18px rgba(0,0,0,.35);
 }
-#vc-panel-frame.vc-panel.mode-embed.folded { height: 56px; width: min(420px, 45%); }
+#vc-panel-frame.vc-panel.mode-embed.folded { height: 44px; width: min(420px, 45%); }
 
 /* ===== B站视频页：面板挂载到 body，用文档坐标+预留空白模拟右栏文档流 =====
    ★ 不能把外来节点插进 .right-container-inner：该容器处于 B站 Vue 组件的子节点序列中，
@@ -78,7 +78,7 @@
   box-shadow: none;
 }
 #vc-embed-host.vc-side-column > #vc-panel-frame.vc-panel.mode-embed.folded {
-  height: 56px; width: 100%;
+  height: 44px; width: 100%;
 }
 /* 在弹幕列表模块之前预留面板高度，避免面板与页面内容重叠。
    只改 margin，不增删接管节点，Vue patch 不受影响。 */
@@ -103,7 +103,7 @@ body.vc-bili-embed-active.vc-bili-embed-no-danmaku .right-container-inner > .rcm
   resize: both;
   overflow: hidden;
 }
-#vc-panel-frame.vc-panel.mode-float.folded { height: 56px; }
+#vc-panel-frame.vc-panel.mode-float.folded { height: 44px; }
 
 /* ===== 侧边栏：用原生 sidePanel，不在页面注入 iframe（此模式不创建 iframe） ===== */
 #vc-panel-frame.vc-panel.mode-side { display: none; }

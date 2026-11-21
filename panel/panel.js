@@ -118,6 +118,7 @@
     $('#tr-second').checked = S.secondSource >= 0 || Object.keys(S.second).length > 0;
     // 折叠状态 → 图标旋转由 CSS 依据 aria-expanded 驱动（展开朝上 / 折叠朝下）
     const folded = !!S.folded;
+    $('#root').classList.toggle('folded', folded);
     $('#btn-fold').setAttribute('aria-expanded', folded ? 'false' : 'true');
     $('#btn-fold').title = folded ? '展开面板' : '折叠面板';
     $('#btn-fold').setAttribute('aria-label', folded ? '展开面板' : '折叠面板');
@@ -296,6 +297,7 @@
     if (res && typeof res.folded === 'boolean') {
       S.folded = res.folded;
       const folded = res.folded;
+      $('#root').classList.toggle('folded', folded);
       $('#btn-fold').setAttribute('aria-expanded', folded ? 'false' : 'true');
       $('#btn-fold').title = folded ? '展开面板' : '折叠面板';
       $('#btn-fold').setAttribute('aria-label', folded ? '展开面板' : '折叠面板');
