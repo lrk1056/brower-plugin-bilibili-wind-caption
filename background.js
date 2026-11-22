@@ -122,19 +122,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         await chrome.runtime.openOptionsPage();
         return { ok: true };
       }
-      case 'OPEN_PANEL':
-      case 'OPEN_SIDEPANEL': {
-        try {
-          const tabId = msg.tabId || (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id;
-          if (tabId) await chrome.sidePanel.open({ tabId });
-        } catch (e) { console.warn('[vc-bg] open sidepanel failed', e); }
-        return { ok: true };
-      }
-      case 'CLOSE_SIDEPANEL': {
-        // Chrome 无主动关闭 sidePanel 的 API（用户点浏览器侧边栏按钮关闭）；
-        // 通知 content 切回即可。保留占位以兼容未来。
-        return { ok: true };
-      }
       case 'FETCH_TEXT': {
         // 内容脚本跨域 fetch 受 CORS 限制时，用后台代理（有 host_permissions，不受 CORS 约束）
         try {
@@ -230,7 +217,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 /* 点击浏览器工具栏上固定的扩展图标 → 打开设置页。
- * manifest 的 action 未设置 default_popup，故点击会触发 onClicked；
+ * manifest 的 action 未设置 default_popup，故点击会走 onClicked；
  * 用官方 openOptionsPage 而非 window.open，避免被 Chrome 弹窗拦截。 */
 chrome.action.onClicked.addListener(async () => {
   try { await chrome.runtime.openOptionsPage(); }

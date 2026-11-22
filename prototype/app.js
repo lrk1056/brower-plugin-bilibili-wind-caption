@@ -39,12 +39,6 @@
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + screen));
   }));
 
-  /* ---------- display mode ---------- */
-  $('#mode-select').addEventListener('change', e => {
-    $('#stage').className = 'stage mode-' + e.target.value;
-    toast('显示形态：' + e.target.selectedOptions[0].text);
-  });
-
   /* ---------- site select ---------- */
   $('#site-select').addEventListener('change', e => {
     const yt = e.target.value === 'youtube';
@@ -318,8 +312,8 @@
     ['3. 翻译与双语', 'P1', ['翻译服务：AI / Google / 小牛 / DeepL', '全量翻译、进度/暂停/重试/删除', '第二字幕双语对照', '多选批量：复制 / 翻译 / 修正翻译', '章节翻译']],
     ['4. 章节', 'P1', ['AI 生成（含描述 / 段落）与状态机', '章节列表 / 上下章 / 悬浮章节', '章节进度条与详情条', '删除章节']],
     ['5. 复制 / 下载 / 导出', 'P1', ['文稿(TXT/MD) / 全文 / SRT / VTT / LRC', '时间戳 / 结构 / 第二字幕 / 无水印', '下载中心预览、快捷按钮', '浏览器快捷键 Ctrl+Shift+C / D']],
-    ['6. 显示形态与布局', 'P2', ['嵌入 / 悬浮窗 / 侧边栏', '字幕条（B站）', '网站配置、5 个 Tab 排序显隐', '自动插入 / 展开 / 折叠']],
-    ['7. 技术架构（参考）', '—', ['Manifest V3：SW + sidePanel + options', 'BG ↔ 多内容脚本分层协议', 'Shadow DOM / 跨 iframe / SPA 监听', 'Redux + i18next + daisyUI']]
+    ['6. 显示形态与布局', 'P2', ['页面内嵌入', '字幕条（B站）', '网站配置、5 个 Tab 排序显隐', '自动插入 / 展开 / 折叠']],
+    ['7. 技术架构（参考）', '—', ['Manifest V3：SW + options', 'BG ↔ 多内容脚本分层协议', '跨 iframe / SPA 监听', 'Redux + i18next + daisyUI']]
   ];
   $('#flow-grid').innerHTML = flow.map(([title, tag, items]) => `
     <div class="flow-card"><h3>${title}</h3><span class="tag">优先级 ${tag}</span>

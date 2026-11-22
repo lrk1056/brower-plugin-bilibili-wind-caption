@@ -41,9 +41,6 @@
   border-radius: 6px 0 0 6px;
   box-shadow: -4px 0 18px rgba(0,0,0,.35);
 }
-#vc-embed-host.side-left #vc-panel-frame.vc-panel.mode-embed {
-  right: auto; left: 0; border-radius: 0 6px 6px 0; box-shadow: 4px 0 18px rgba(0,0,0,.35);
-}
 #vc-panel-frame.vc-panel.mode-embed.folded { height: 44px; width: min(420px, 45%); }
 
 /* ===== B站视频页：面板挂载到 body，用文档坐标+预留空白模拟右栏文档流 =====
@@ -92,21 +89,29 @@ body.vc-bili-embed-active.vc-bili-embed-no-danmaku .right-container-inner > .rcm
   margin-top: var(--vc-embed-panel-space, 0px) !important;
 }
 
-/* ===== 悬浮窗：固定视口，浮于页面之上，可调整大小 ===== */
-#vc-panel-frame.vc-panel.mode-float {
-  position: fixed !important;
-  z-index: 2147483646;
-  right: 40px;
-  top: 120px;
-  width: 420px;
-  height: 520px;
-  resize: both;
-  overflow: hidden;
+/* 面板关闭后的重开入口：仅在页面内没有面板时显示 */
+#vc-launcher {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1201;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--bd, #e4e5e7);
+  background: #cf4a43;
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  cursor: pointer;
 }
-#vc-panel-frame.vc-panel.mode-float.folded { height: 44px; }
-
-/* ===== 侧边栏：用原生 sidePanel，不在页面注入 iframe（此模式不创建 iframe） ===== */
-#vc-panel-frame.vc-panel.mode-side { display: none; }
+#vc-launcher.show { display: flex; }
+#vc-launcher:hover { filter: brightness(1.07); }
 
 /* 字幕悬浮条（B站特性，默认关闭） */
 .vc-caption-bubble {

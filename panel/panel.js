@@ -4,11 +4,8 @@
   const $$ = s => [...document.querySelectorAll(s)];
   const U = VC.util;
   const params = new URLSearchParams(location.search);
-  const isSidepanel = params.get('sidepanel') === '1';
   const token = params.get('token') || document.getElementById('vc-panel-frame')?.dataset.token || '';
-  // iframe 模式用 postMessage；sidepanel 模式用 chrome 消息通道
-  if (isSidepanel) VC.proto.init({ role: 'panel', transport: 'chrome' });
-  else VC.proto.init({ role: 'panel', target: parent, token: token || '__PENDING__' });
+  VC.proto.init({ role: 'panel', target: parent, token: token || '__PENDING__' });
 
   let S = { sentences: [], chapters: [], sources: [], activeSource: 0, secondSource: -1, second: {},
     currentIdx: 0, settings: {}, site: '', title: '' };
@@ -101,9 +98,23 @@
     applyAppearance(); saveAppearance(); toast('已恢复默认外观');
   });
 
+  /* ---------- 显示密度 / 条纹：此前只存不用，接入实际渲染 ---------- */
+  let displayStyleKey = '';
+  function applyDisplayDensity() {
+    const s = S.settings || {};
+    const density = ['compact', 'standard', 'comfortable'].includes(s.density) ? s.density : 'standard';
+    const striped = !!s.striped;
+    const key = density + '|' + striped;
+    if (key === displayStyleKey) return;
+    displayStyleKey = key;
+    $('#root').setAttribute('data-density', density);
+    $('#root').classList.toggle('striped', striped);
+  }
+
   /* ---------- 渲染 ---------- */
   function renderAll() {
     loadAppearanceFromSettings();
+    applyDisplayDensity();
     $('#site-tag').textContent = ({ bilibili: 'Bilibili', youtube: 'YouTube' })[S.site] || S.site || '—';
     $('#chip-source').textContent = '字幕：' + ((S.sources[S.activeSource] || {}).name || '—');
     $('#chip-second').textContent = '第二字幕：' + (S.secondSource >= 0 || Object.keys(S.second).length ? '开' : '关闭');
@@ -114,7 +125,6 @@
     const tabs = (S.settings.tabs) || {};
     $$('.tab').forEach(t => t.classList.toggle('hidden', t.dataset.tab !== 'subtitle' && tabs[t.dataset.tab] === false));
     renderChapters(); renderList(); renderChapterStrip();
-    $('#mode-label').textContent = ({ embed: '嵌入', float: '悬浮', side: '侧边栏' })[S.panelMode] || '';
     $('#tr-second').checked = S.secondSource >= 0 || Object.keys(S.second).length > 0;
     // 折叠状态 → 图标旋转由 CSS 依据 aria-expanded 驱动（展开朝上 / 折叠朝下）
     const folded = !!S.folded;
@@ -122,8 +132,8 @@
     $('#btn-fold').setAttribute('aria-expanded', folded ? 'false' : 'true');
     $('#btn-fold').title = folded ? '展开面板' : '折叠面板';
     $('#btn-fold').setAttribute('aria-label', folded ? '展开面板' : '折叠面板');
-    // 拖拽手柄只在 B站嵌入模式显示（其他模式高度由 CSS/悬浮窗设置控制）
-    $('#resize-grip').classList.toggle('show', !folded && S.panelMode === 'embed' && S.site === 'bilibili');
+    // 拖拽手柄只在 B站显示
+    $('#resize-grip').classList.toggle('show', !folded && S.site === 'bilibili');
   }
 
   function renderChapters() {
@@ -304,6 +314,10 @@
     }
   });
   $('#btn-options').addEventListener('click', () => call('OPEN_OPTIONS'));
+  $('#btn-close').addEventListener('click', async () => {
+    await call('CLOSE_PANEL');
+    toast('面板已关闭，点页面右下角「字」可重新打开');
+  });
 
   /* ---------- 底部拖拽手柄：调整嵌入高度 ---------- */
   (function initResizeGrip() {

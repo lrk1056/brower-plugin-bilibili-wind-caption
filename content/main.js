@@ -52,7 +52,8 @@
     initStarted = true;
     console.log('[vc] init start v2-bgload', location.href);
     state.settings = await store.getSettings();
-    state.panelMode = state.settings.display.position || 'embed';
+    // 显示模式固定为嵌入（悬浮窗/侧边栏均已移除）：历史配置里的 float/side 一律回退为 embed。
+    state.panelMode = 'embed';
     // 面板初始折叠态由"自动展开"开关决定：不勾选 → 默认折叠；勾选 → 默认展开。
     // 默认 autoExpand=true，故默认行为仍是展开，不影响既有体验。
     state.folded = !state.settings.autoExpand;
@@ -62,6 +63,7 @@
 
     // ★ 面板必须最先注入：字幕 fetch 可能很慢甚至挂起，绝不能阻塞面板出现
     if (state.settings.autoInsert) injectPanel();
+    ensureLauncher(); // 面板关闭后仍可重新打开；autoInsert=false 时也有入口
     bindVideoEvents();
     listenCommands();
     watchSettingsChanges();
@@ -445,8 +447,6 @@
     if (wantSideClass) {
       host.classList.add('vc-side-column');
     } else {
-      const side = (state.settings && state.settings.display && state.settings.display.panelSide) || 'right';
-      if (side === 'left') host.classList.add('side-left');
       prepareEmbedAnchor(container, host);
     }
     try {
@@ -464,7 +464,6 @@
   function injectPanel() {
     // 只在顶层窗口注入面板，避免注入到 iframe 子帧里而不可见
     if (window !== window.top) { console.log('[vc] skip panel in iframe'); return; }
-    if (state.panelMode === 'side') { openSidePanel(); return; } // 侧边栏用原生 sidePanel
     if (state.frame) return;
     let panelUrl;
     try { panelUrl = chrome.runtime.getURL('panel/panel.html'); }
@@ -482,9 +481,10 @@
       pushState();
     });
     console.log('[vc] panel injected, mode=', state.panelMode);
+    syncLauncher();
   }
 
-  // 把 iframe 挂到对应容器（嵌入视频区域 / 悬浮固定）
+  // 把 iframe 挂到对应容器（页面内嵌入面板）
   function mountFrame(frame) {
     if (state.panelMode === 'embed') {
       ensureEmbedPlacement();
@@ -498,31 +498,60 @@
   function removePanel() {
     if (state.frame) { unmountFrame(state.frame); state.frame = null; }
   }
+
+  /* ---------- 面板关闭 / 重开：页面右下角常驻 launcher ----------
+     面板内「×」关闭后，或 autoInsert=false 时，用户仍能重新打开。 */
+  let launcher = null;
+  function ensureLauncher() {
+    if (launcher) return;
+    if (!document.body) { // document_start 注入时 body 可能还不存在，稍后重试
+      if (extAlive()) setTimeout(ensureLauncher, 200);
+      return;
+    }
+    launcher = document.createElement('button');
+    launcher.id = 'vc-launcher';
+    launcher.type = 'button';
+    launcher.textContent = '字';
+    launcher.title = '打开 WindCaption 字幕面板';
+    launcher.setAttribute('aria-label', '打开 WindCaption 字幕面板');
+    launcher.addEventListener('click', () => { openPanel(); });
+    try { document.body.appendChild(launcher); }
+    catch (e) { launcher = null; return; }
+    syncLauncher();
+  }
+  function syncLauncher() {
+    if (launcher) launcher.classList.toggle('show', !state.frame);
+  }
+  function openPanel() {
+    injectPanel();
+    syncLauncher();
+    pushState();
+    return { ok: true, open: true };
+  }
+  function closePanel() {
+    if (state.frame) removePanel();
+    syncLauncher();
+    pushState();
+    return { ok: true, open: false };
+  }
+  function togglePanel() {
+    return state.frame ? closePanel() : openPanel();
+  }
   function applyLayout() {
     const f = state.frame;
-    // B站预留空白只在 embed 面板真实存在时启用；切到 float/side 或关闭面板后立即撤销。
+    // B站预留空白只在面板真实存在时启用；关闭面板后立即撤销。
     if (document.body) {
-      document.body.classList.toggle('vc-bili-embed-active', state.site === 'bilibili' && state.panelMode === 'embed' && !!f);
-      if (!(state.site === 'bilibili' && state.panelMode === 'embed' && !!f)) {
+      document.body.classList.toggle('vc-bili-embed-active', state.site === 'bilibili' && !!f);
+      if (!(state.site === 'bilibili' && !!f)) {
         document.body.classList.remove('vc-bili-embed-no-danmaku');
       }
     }
     if (!f) return;
-    f.className = 'vc-panel mode-' + state.panelMode + (state.folded ? ' folded' : '');
-    // 悬浮窗尺寸由设置决定
-    const d = (state.settings && state.settings.display) || {};
-    if (state.panelMode === 'float') {
-      f.style.width = Math.max(300, Math.min(800, d.width || 420)) + 'px';
-      if (!state.folded) f.style.height = Math.max(300, Math.min(1200, d.height || 520)) + 'px';
-    } else {
-      f.style.width = ''; f.style.height = '';
-    }
-    // 模式切换时重新挂载到正确容器
-    if (state.panelMode === 'embed') {
-      ensureEmbedPlacement();
-    } else if (f.parentElement && f.parentElement.id === 'vc-embed-host') {
-      document.body.appendChild(f);
-    }
+    f.className = 'vc-panel mode-embed' + (state.folded ? ' folded' : '');
+    // 尺寸与定位完全交给 CSS，清掉历史 float 残留的内联样式。
+    f.style.width = ''; f.style.height = '';
+    f.style.left = ''; f.style.top = ''; f.style.right = '';
+    ensureEmbedPlacement();
   }
   applyLayout();
 
@@ -530,32 +559,9 @@
   // 仅 embed 模式且有 frame 时生效，其他页面/模式零副作用。
   setInterval(ensureEmbedPlacement, 1000);
   window.addEventListener('pageshow', e => { if (e.persisted) ensureEmbedPlacement(); });
-  window.addEventListener('resize', () => { if (state.site === 'bilibili') ensureEmbedPlacement(); });
-
-  // 侧边栏：原生 sidePanel（同时移除页面内 iframe）
-  async function openSidePanel() {
-    try {
-      await bgSend({ action: 'OPEN_SIDEPANEL' });
-      console.log('[vc] side panel opened');
-    } catch (e) { console.debug('[vc] open sidepanel failed', e); }
-  }
-  function closeSidePanel() {
-    try { bgSend({ action: 'CLOSE_SIDEPANEL' }); } catch (e) {}
-  }
-  // 应用显示模式（含 iframe <-> sidePanel 切换）
-  async function setPanelMode(mode) {
-    if (!['embed', 'float', 'side'].includes(mode)) return;
-    if (state.panelMode === 'side' && mode !== 'side') closeSidePanel();
-    state.panelMode = mode;
-    if (mode === 'side') {
-      removePanel();          // 移除页面内 iframe
-      await openSidePanel();
-    } else {
-      if (!state.frame) injectPanel();
-      else applyLayout();
-    }
-    pushState();
-  }
+  window.addEventListener('resize', () => {
+    if (state.site === 'bilibili') ensureEmbedPlacement();
+  });
 
   /* ---------- 协议处理 ---------- */
   async function statePayload() {
@@ -590,9 +596,9 @@
   async function pushState() {
     syncAutoFold();
     const payload = await statePayload();
-    proto.emit('STATE', payload);          // iframe 模式
-    proto.pushEvent('STATE', payload);     // 侧边栏模式（chrome 广播）
+    proto.emit('STATE', payload);
     applyLayout();
+    syncLauncher();                        // mode 切换/关闭后 launcher 显隐始终与面板一致
   }
   // 统一的后台消息封装：扩展被重载后 chrome.runtime 上下文失效，避免未捕获 Promise 异常
   async function bgSend(msg) {
@@ -607,15 +613,6 @@
       jumpTo(Math.max(0, idx)); return { ok: true };
     });
     proto.on('CONTROL', p => { control(p.op, p.value); return { ok: true }; });
-    proto.on('SET_VIEW_MODE', async p => {
-      await setPanelMode(p.mode);
-      // 同步默认值到设置
-      if (state.settings && state.settings.display) {
-        state.settings.display.position = p.mode;
-        await store.saveSettings(state.settings);
-      }
-      return { ok: true };
-    });
     proto.on('TOGGLE_FOLD', async () => {
       state.folded = !state.folded;
       applyLayout();
@@ -720,7 +717,8 @@
     });
     proto.on('GET_SETTINGS', async () => { state.settings = await store.getSettings(); return { ok: true, settings: state.settings }; });
     proto.on('SAVE_SETTINGS', async p => { await store.saveSettings(p.settings); state.settings = p.settings; pushState(); return { ok: true }; });
-    proto.on('TOGGLE_PANEL', () => { state.frame ? removePanel() : injectPanel(); return { ok: true }; });
+    proto.on('CLOSE_PANEL', () => closePanel());
+    proto.on('TOGGLE_PANEL', () => togglePanel());
     proto.on('OPEN_OPTIONS', async () => {
       try { await bgSend({ action: 'OPEN_OPTIONS' }); }
       catch (e) { console.debug('[vc] open options failed', e); }
@@ -748,17 +746,12 @@
       if (msg.action === 'SHORTCUT_EXPORT') {
         proto.emit('SHORTCUT_EXPORT', { kind: msg.kind });
       } else if (msg.action === 'TOGGLE_PANEL') {
-        if (state.frame) removePanel(); else injectPanel();
-      } else if (msg.action === 'PANEL_VISIBILITY') {
-        // 侧边栏打开/关闭时同步
-        if (msg.open) pushState();
+        togglePanel();
       }
     }); } catch (e) { console.debug('[vc] listenCommands failed', e); }
   }
 
-  // 注册协议处理器（供 iframe 与 sidepanel 两条通道共用）
   registerProtoHandlers();
-  proto.listenChromeForHandlers();
 
   init().catch(e => console.debug('[vc] init failed', e));
 })();

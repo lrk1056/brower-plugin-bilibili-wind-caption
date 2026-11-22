@@ -96,13 +96,17 @@ button{cursor:pointer}
 .seg button{background:none;border:0;color:var(--mu);padding:3px 9px;border-radius:4px;font-size:11px}
 .seg button.active{background:var(--pr-btn);color:var(--on-pr);font-weight:700}
 .spacer{flex:1}
-.mode-label{color:var(--mu);font-size:11px}
 .hint{font-size:10px;color:var(--mu);padding:5px 10px;background:rgba(77,208,225,.06);border-bottom:1px solid var(--bd)}
 .list{flex:1;overflow-y:auto;padding:4px 0}
 .sub{display:flex;gap:8px;padding:7px 11px;cursor:pointer;border-left:3px solid transparent;line-height:var(--sub-line);font-size:var(--sub-font)}
 .sub:hover{background:var(--s2)}
 .sub.cur{background:rgba(255,107,107,.12);border-left-color:var(--pr)}
 .sub.sel{background:rgba(77,208,225,.12)}
+/* 显示密度：只调字幕行内边距，字号/行高仍由外观设置决定 */
+#root[data-density="compact"] .sub{padding-top:4px;padding-bottom:4px}
+#root[data-density="comfortable"] .sub{padding-top:11px;padding-bottom:11px}
+/* 条纹：奇偶行异色；当前句/选中/悬停高亮优先 */
+#root.striped .sub:nth-child(odd):not(.cur):not(.sel):not(:hover){background:var(--s2)}
 .sub .t{color:var(--ac);font-size:10px;font-variant-numeric:tabular-nums;flex:none;padding-top:2px}
 .sub .b{flex:1;min-width:0;word-break:break-word}
 .sub .sec{color:var(--mu);font-size:11px;margin-top:2px}

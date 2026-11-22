@@ -22,12 +22,6 @@
       <button class="nav-btn" data-screen="flow">功能地图</button>
     </nav>
     <div class="topbar-right">
-      <label class="mini-label">显示形态</label>
-      <select id="mode-select">
-        <option value="embed">嵌入页面</option>
-        <option value="float">悬浮窗</option>
-        <option value="side">侧边栏</option>
-      </select>
       <label class="mini-label">站点</label>
       <select id="site-select">
         <option value="bilibili">Bilibili</option>
@@ -265,7 +259,6 @@
         </div>
         <div class="settings-section hidden" data-section="display">
           <h2>显示配置</h2>
-          <div class="setting-item"><div><b>默认显示位置</b><p>嵌入页面 / 悬浮窗 / 侧边栏</p></div><select><option>嵌入页面</option><option>悬浮窗</option><option>侧边栏</option></select></div>
           <div class="setting-grid">
             <label>默认 X 坐标 <input type="number" value="100"></label>
             <label>默认 Y 坐标 <input type="number" value="100"></label>
@@ -308,10 +301,8 @@
         <div class="settings-section hidden" data-section="website">
           <h2>网站配置</h2>
           <div class="setting-item"><div><b>当前网址</b><p id="current-url">https://www.bilibili.com/video/BVxxxx</p></div><span class="status-pill ok">此站点已适配</span></div>
-          <div class="setting-item"><div><b>显示位置</b></div><select><option>嵌入页面</option><option>悬浮窗</option><option>侧边栏</option></select></div>
           <div class="setting-item"><div><b>布局类型</b></div><select><option>单栏布局</option><option>左右布局</option><option>左中右布局</option><option>上下布局</option></select></div>
           <div class="setting-item"><div><b>面板位置</b></div><select><option>右侧</option><option>左侧</option><option>上方</option><option>下方</option></select></div>
-          <p class="muted small">修改显示位置后自动刷新网页。</p>
         </div>
       </div>
     </div>

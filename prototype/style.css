@@ -170,11 +170,6 @@ select:focus,input:focus{border-color:var(--primary)}
 .download-ops{display:flex;gap:8px}
 .download-ops .btn-block{margin:4px 12px}
 
-/* display modes */
-.stage.mode-float .panel{position:fixed;right:40px;top:120px;width:420px;height:520px;z-index:60}
-.stage.mode-side .panel{position:fixed;right:0;top:56px;width:380px;height:calc(100vh - 56px);border-radius:0;z-index:60}
-.stage.mode-embed .panel{position:sticky}
-
 /* settings */
 .settings-wrap{display:flex;gap:20px;padding:24px;max-width:1100px;margin:0 auto}
 .settings-side{width:200px;flex:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;height:max-content}

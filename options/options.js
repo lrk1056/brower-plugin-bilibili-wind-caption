@@ -31,9 +31,6 @@
     applyPageTheme(s.theme);
     $('#g-subtitleBar').checked = !!(s.subtitleBar && s.subtitleBar.enabled);
 
-    $('#d-position').value = s.display.position || 'embed';
-    $('#d-side').value = s.display.panelSide || 'right';
-    $('#d-w').value = s.display.width || 420; $('#d-h').value = s.display.height || 520;
     $('#d-density').value = s.density || 'standard';
     $('#d-font').value = s.fontSize || 15;
     $('#d-striped').checked = !!s.striped;
@@ -126,10 +123,12 @@
     settings.subtitleBar.showChapterProgress = $('#b-chProgress').checked;
     settings.subtitleBar.showChapterDetail = $('#b-chDetail').checked;
     settings.subtitleBar.showSubtitle = $('#b-subtitle').checked;
-    settings.display.position = $('#d-position').value;
-    settings.display.panelSide = $('#d-side').value;
-    settings.display.width = Math.max(300, Math.min(800, +$('#d-w').value || 420));
-    settings.display.height = Math.max(300, Math.min(1200, +$('#d-h').value || 520));
+    // 显示模式固定嵌入：清理历史遗留的 position/panelSide/悬浮窗字段，避免旧值再次生效
+    delete settings.display.position;
+    delete settings.display.panelSide;
+    delete settings.display.width;
+    delete settings.display.height;
+    delete settings.display.floatPos;
     settings.density = $('#d-density').value;
     settings.fontSize = +$('#d-font').value || 15;
     settings.striped = $('#d-striped').checked;
@@ -160,7 +159,8 @@
     const u = new URL(url);
     const key = u.host + u.pathname;
     settings.websiteConfigs = settings.websiteConfigs || {};
-    settings.websiteConfigs[key] = { position: $('#s-position').value };
+    // 显示模式已固定嵌入，网站配置不再保存 position
+    if (settings.websiteConfigs[key]) delete settings.websiteConfigs[key].position;
     await store.saveSettings(settings);
     toast('已保存，刷新网页后生效');
   });
