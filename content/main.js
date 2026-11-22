@@ -31,17 +31,21 @@
     autoScroll: true,
     lastHasSubtitle: null // 自动展开/折叠用的上一次"是否有字幕句"状态
   };
-  // 嵌入高度范围：最低 = 现有默认高度（保持行为不变）；
-  // 最高 = 面板固定区域 + 15 行字幕（单行 = 字号*行高 + .sub 上下 padding 14px）。
+  // 嵌入高度范围：以字幕行数为准——默认最低显示 10 行、最高 15 行。
+  // 单行高度 = 字号 × 行高 + .sub 上下 padding(14px)；chrome 为面板固定区域高度。
   // 同时不超过视口，避免面板溢出屏幕。
   function embedHeightRange() {
-    const min = Math.min(520, Math.max(240, window.innerHeight * 0.7));
     const fs = Number((state.settings && state.settings.fontSize) || 13);
     const lh = Number((state.settings && state.settings.subLineHeight) || 1.55);
     const row = fs * lh + 14;
     const chrome = 250; // head/meta/章节条/tabs/工具栏/提示/底栏之和（约值）
-    const max = Math.max(min, Math.min(window.innerHeight - 24, Math.round(chrome + row * 15)));
-    return { min, max };
+    const MIN_ROWS = 10, MAX_ROWS = 15;
+    const hardMax = Math.max(200, window.innerHeight - 24);
+    let min = Math.round(chrome + row * MIN_ROWS);
+    let max = Math.round(chrome + row * MAX_ROWS);
+    max = Math.min(max, hardMax);
+    if (min > max) min = max;
+    return { min, max, rows: { min: MIN_ROWS, max: MAX_ROWS } };
   }
   let pausedScrollUntil = 0;
   let captionBubble = null;
