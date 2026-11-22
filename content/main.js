@@ -428,21 +428,28 @@
     return idx < kids.length - 1;
   }
 
-  // 检测 B站宽屏 / 网页全屏模式：这类模式下播放器横向铺满、右栏栏目被移到视频下方重排。
-  // 依据常见标记：body/html 上的宽屏 class，或右栏宽度明显超过常规值。
+  // 检测 B站宽屏 / 网页全屏模式。
+  // 最可靠的信号：宽屏时播放器横向铺满，右栏栏目被移到"视频下方"重排
+  //（常规模式下右栏在视频右侧，与视频顶部大致齐平）。
   function isWideScreenMode(right) {
-    // 最直接可靠：常规右栏约 350~420px，宽屏时右栏被拉宽/重排。
+    const video = document.querySelector('video');
+    if (video && right) {
+      const vr = video.getBoundingClientRect();
+      const rr = right.getBoundingClientRect();
+      // 右栏顶部明显低于视频顶部（即在视频下方）→ 宽屏重排
+      if (rr.top > vr.top + Math.max(80, vr.height * 0.35)) return true;
+      // 右栏宽度接近或超过视频宽度 → 宽屏铺满
+      if (rr.width > vr.width * 0.9 && rr.width > 480) return true;
+    }
     if (right) {
       const rw = right.getBoundingClientRect().width;
-      if (rw > 520) return true;
+      if (rw > 520) return true; // 常规右栏约 350~420px
     }
-    // 播放器宽度接近整屏宽时，说明处于宽屏/网页全屏
     const player = document.querySelector('.bpx-player-wrap, .video-player-box, #bilibili_player');
     if (player) {
       const pw = player.getBoundingClientRect().width;
       if (pw > window.innerWidth * 0.82) return true;
     }
-    // B站宽屏时在 html/body 上打的类名
     const cls = ((document.body && document.body.className) || '') + ' ' + ((document.documentElement && document.documentElement.className) || '');
     if (/(^|\s)(widescreen|web-fullscreen|bpx-player-fullscreen|player-fullscreen)(\s|$)/i.test(cls)) return true;
     return false;
@@ -486,10 +493,15 @@
 
     const r = right.getBoundingClientRect();
     const up = right.querySelector('.up-panel-container');
+    const vEl = document.querySelector('video');
+    const vRect = vEl ? vEl.getBoundingClientRect() : null;
     let top;
     if (wide) {
-      // 宽屏：右栏容器顶部由 CSS padding-top 预留了空白，面板落在其中
-      top = r.top + window.scrollY;
+      // 宽屏：右栏栏目已移到视频下方。面板必须放在"视频底部之后"的栏目区顶部，
+      // 绝不覆盖视频画面。取右栏顶部与视频底部中较大者作为起点。
+      const afterVideo = vRect ? vRect.bottom + window.scrollY + 12 : r.top + window.scrollY;
+      top = Math.max(r.top + window.scrollY, afterVideo);
+      // 若右栏容器加了 padding-top 预留空白，面板正好落在该空白内
     } else if (anchor) {
       // 常规：anchor 已含我们预留的 margin-top，减回去就是空白起点（UP主卡片下方）。
       top = anchor.getBoundingClientRect().top + window.scrollY - height - 12;
@@ -508,8 +520,11 @@
     if (up && up.isConnected) contentLeft = up.getBoundingClientRect().left;
     const panelW = Math.min(MAX_W, Math.max(NORMAL_W, colW));
     let left;
-    if (colW > NORMAL_W + 40) {
-      // 宽屏：右栏被拉宽，面板靠右栏右缘对齐（与右侧栏目右边界一致）
+    if (wide) {
+      // 宽屏：右栏栏目在视频下方，面板与视频右缘对齐（栏目右边界），不覆盖视频
+      left = vRect ? vRect.right - panelW : r.right - panelW;
+    } else if (colW > NORMAL_W + 40) {
+      // 常规但右栏偏宽：靠右栏右缘对齐
       left = r.right - panelW;
     } else {
       // 常规：与右栏内容左缘对齐
