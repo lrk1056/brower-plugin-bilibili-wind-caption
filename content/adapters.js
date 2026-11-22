@@ -93,7 +93,8 @@
             .then(r => r.json());
           const vp = ((res.data && res.data.view_points) || []).filter(v => v.type === 2);
           if (vp.length) return vp.map(v => ({
-            title: v.title || '章节',
+            // B站 view_points 的章节标题在 content 字段（不是 title）
+            title: v.content || v.title || v.chapterTitle || '章节',
             description: '',
             startMs: Math.round((v.from || 0) * 1000)
           })).sort((a, b) => a.startMs - b.startMs);
