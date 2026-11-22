@@ -45,6 +45,7 @@
     applyPageTheme(s.theme);
 
     $('#g-subtitleBar').checked = !!(s.subtitleBar && s.subtitleBar.enabled);
+    $('#g-hideDanmaku').checked = !!s.hideOfficialDanmaku;
     $('#b-chProgress').checked = s.subtitleBar.showChapterProgress !== false;
     $('#b-chDetail').checked = !!s.subtitleBar.showChapterDetail;
     $('#b-subtitle').checked = s.subtitleBar.showSubtitle !== false;
@@ -149,6 +150,7 @@
     settings.smartPunctuation = $('#g-smartPunctuation').checked;
     settings.theme = $('#g-theme').value === 'system' ? 'auto' : $('#g-theme').value;
     settings.subtitleBar.enabled = $('#g-subtitleBar').checked;
+    settings.hideOfficialDanmaku = $('#g-hideDanmaku').checked;
     settings.subtitleBar.showChapterProgress = $('#b-chProgress').checked;
     settings.subtitleBar.showChapterDetail = $('#b-chDetail').checked;
     settings.subtitleBar.showSubtitle = $('#b-subtitle').checked;

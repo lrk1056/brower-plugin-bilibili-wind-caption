@@ -182,8 +182,6 @@ button{cursor:pointer}
 input[type=checkbox]{accent-color:var(--pr)}
 
 /* ===== 弹幕 Tab ===== */
-.dm-hide-toggle{font-size:11px;color:var(--mu);margin-left:auto;display:flex;align-items:center;gap:5px;cursor:pointer}
-.dm-hide-toggle input{accent-color:var(--pr)}
 .dm-toolbar{display:flex;gap:6px;padding:7px 10px;border-bottom:1px solid var(--bd)}
 .dm-toolbar input{flex:1;min-width:0;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:5px 8px;outline:none;font-size:12px}
 .dm-head{display:grid;grid-template-columns:60px 1fr 92px;gap:6px;padding:6px 10px;font-size:10px;color:var(--mu);border-bottom:1px solid var(--bd)}

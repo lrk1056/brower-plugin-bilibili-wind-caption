@@ -528,15 +528,6 @@
     const r = await call('LOAD_DANMAKU', {});
     toast(r && r.ok ? `已加载 ${r.count} 条弹幕` : '刷新失败');
   });
-  $('#dm-hide-official').addEventListener('change', async e => {
-    const r = await call('TOGGLE_OFFICIAL_DANMAKU', { hide: e.target.checked });
-    toast(r && r.ok ? (e.target.checked ? '已隐藏官方弹幕' : '已显示官方弹幕') : '操作失败');
-  });
-  // 初始化官方弹幕开关状态
-  call('GET_OFFICIAL_DANMAKU').then(r => {
-    if (r && r.ok) $('#dm-hide-official').checked = !!r.hide;
-  });
-
   /* ---------- 键盘快捷键（聚焦面板时） ---------- */
   document.addEventListener('keydown', async e => {
     const sc = S.settings.shortcut || {};

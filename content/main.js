@@ -239,6 +239,7 @@
         const nowBar = !!(state.settings.subtitleBar && state.settings.subtitleBar.enabled);
         if (nowBar) { ensureCaptionBubble(); updateBubble(); }
         else if (prevBar && captionBubble) captionBubble.style.display = 'none';
+        applyOfficialDanmakuVisibility(); // 显示配置里勾选/取消隐藏官方弹幕即时生效
         pushState();
       });
     } catch (e) { console.debug('[vc] watchSettingsChanges skipped', e); }
@@ -667,17 +668,6 @@
       return { ok: true };
     });
     proto.on('LOAD_DANMAKU', async () => { await loadDanmaku(); return { ok: true, count: state.danmaku.length }; });
-    proto.on('TOGGLE_OFFICIAL_DANMAKU', async p => {
-      if (!state.settings) state.settings = await store.getSettings();
-      state.settings.hideOfficialDanmaku = !!p.hide;
-      await store.saveSettings(state.settings);
-      applyOfficialDanmakuVisibility();
-      return { ok: true, hide: state.settings.hideOfficialDanmaku };
-    });
-    proto.on('GET_OFFICIAL_DANMAKU', async () => {
-      if (!state.settings) state.settings = await store.getSettings();
-      return { ok: true, hide: !!state.settings.hideOfficialDanmaku };
-    });
     proto.on('TOGGLE_FOLD', async () => {
       state.folded = !state.folded;
       applyLayout();
