@@ -90,16 +90,24 @@ body.vc-bili-embed-active.vc-bili-embed-no-danmaku .right-container-inner > .rcm
 }
 
 /* ===== 宽屏 / 网页全屏模式适配 =====
-   宽屏下 B站把右栏栏目移到视频下方（横向重排）。此时面板由 JS 绝对定位到视频下方，
-   预留空白只需保证"右栏第一个子栏目"整体下移，避免与面板重叠。
-   用 :first-child 覆盖所有可能的栏目节点，不依赖具体 class 名。 */
+   宽屏下 B站把右栏栏目移到视频下方（横向重排），依次是：UP主卡片 → 弹幕列表 → AI总结/推荐。
+   面板应插在【弹幕列表下方】，不遮挡弹幕列表本身，也不遮挡视频。
+   做法：取消"首个栏目 margin-top"预留，改为在弹幕列表模块【下方】留出空白（margin-bottom），
+   面板绝对定位在该空白内，后续内容自然下移。 */
 body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .video-pod-above-modules,
 body.vc-bili-embed-active.vc-bili-wide .right-container-inner > #danmukuBox,
 body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .danmaku-box,
 body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .rcmd-tab {
   margin-top: 0 !important;
 }
-body.vc-bili-embed-active.vc-bili-wide .right-container-inner > *:first-child {
+/* 弹幕列表下方预留面板高度（宽屏主路径） */
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > #danmukuBox,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .danmaku-box,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .video-pod-above-modules {
+  margin-bottom: var(--vc-embed-panel-space, 0px) !important;
+}
+/* 兜底：弹幕列表缺失时，把推荐/AI总结模块下推 */
+body.vc-bili-embed-active.vc-bili-wide.vc-bili-embed-no-danmaku .right-container-inner > .rcmd-tab {
   margin-top: var(--vc-embed-panel-space, 0px) !important;
 }
 

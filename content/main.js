@@ -455,6 +455,30 @@
   }
   function isWideScreenMode(right) { return detectLayoutKind(right) === 'wide'; }
 
+  // 宽屏下定位"弹幕列表"模块：优先按已知容器，其次按标题文字「弹幕列表」向上找卡片。
+  function findWideDanmakuModule(right) {
+    const scope = right || document;
+    // 1) 常见容器
+    const direct = scope.querySelector('#danmukuBox, .danmaku-box, .video-pod-above-modules');
+    if (direct && direct.isConnected) return direct;
+    // 2) 按标题文字「弹幕列表」找卡片容器
+    try {
+      const all = scope.querySelectorAll('div, section');
+      for (let i = 0; i < all.length; i++) {
+        const el = all[i];
+        if (el.children.length > 3) continue;         // 只看较小的卡片节点
+        const txt = (el.textContent || '').trim();
+        if (txt.startsWith('弹幕列表') && txt.length < 40) {
+          // 向上找到带背景的卡片（作为模块边界）
+          let p = el, depth = 0;
+          while (p && depth < 4 && p.parentElement && p.parentElement !== scope) { p = p.parentElement; depth++; }
+          return p || el;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
   // B站：把 body 上的 host 摆到"UP主卡片下方、弹幕列表上方"的预留空白里。
   // 只改 body/host 的样式和 CSS 变量，不增删 B站 Vue 容器内的任何节点。
   function positionSideColumnHost(target) {
@@ -497,17 +521,19 @@
     const vRect = vEl ? vEl.getBoundingClientRect() : null;
     let top;
     if (wide) {
-      // 宽屏：右栏栏目已移到视频下方。面板放在"视频底部之后"，
-      // 且与右栏第一个子栏目的预留 margin 对齐（该 margin 由 CSS 注入）。
-      const firstChild = right.firstElementChild;
+      // 宽屏：栏目顺序为 UP主卡片 → 弹幕列表 → AI总结/推荐。
+      // 面板应插在【弹幕列表下方】：优先取弹幕列表底部作为起点；
+      // 无弹幕列表时退回"视频底部之后"。
       const afterVideo = vRect ? vRect.bottom + window.scrollY + 12 : r.top + window.scrollY;
       top = Math.max(r.top + window.scrollY, afterVideo);
-      if (firstChild) {
-        const fcTop = firstChild.getBoundingClientRect().top + window.scrollY;
-        // 第一个子栏目已带 --vc-embed-panel-space 的 margin，减回去就是空白起点
-        const fcMarginTop = parseFloat(getComputedStyle(firstChild).marginTop) || 0;
-        const contentStart = fcTop - fcMarginTop;
-        top = Math.max(top, contentStart);
+      // 找弹幕列表模块（宽屏下它是横向展开的容器，可能不是 #danmukuBox 本身）
+      const dmEl = findWideDanmakuModule(right);
+      if (dmEl) {
+        const dmRect = dmEl.getBoundingClientRect();
+        // CSS 已给弹幕模块加了 margin-bottom 预留空白，面板就放在这段空白里：
+        // 紧贴弹幕模块底部（+8px 间距），后续内容（AI总结等）则在预留空白之后。
+        const belowDm = dmRect.bottom + window.scrollY + 8;
+        top = Math.max(top, belowDm);
       }
     } else if (anchor) {
       // 常规：anchor 已含我们预留的 margin-top，减回去就是空白起点（UP主卡片下方）。
@@ -525,11 +551,19 @@
     // 以 UP主卡片（右栏内容实际左边界）为参考，确定内容区左缘
     let contentLeft = r.left;
     if (up && up.isConnected) contentLeft = up.getBoundingClientRect().left;
-    const panelW = Math.min(MAX_W, Math.max(NORMAL_W, colW));
+    const panelW_default = Math.min(MAX_W, Math.max(NORMAL_W, colW));
+    let panelW = panelW_default;
     let left;
+    const dmMod = wide ? findWideDanmakuModule(right) : null;
     if (wide) {
-      // 宽屏：右栏栏目在视频下方，面板与视频右缘对齐（栏目右边界），不覆盖视频
-      left = vRect ? vRect.right - panelW : r.right - panelW;
+      // 宽屏：面板与弹幕列表卡片同宽、同左缘对齐（视觉上作为该栏目的延续）
+      if (dmMod) {
+        const dr = dmMod.getBoundingClientRect();
+        panelW = Math.min(Math.max(NORMAL_W, Math.round(dr.width)), Math.max(240, vRect ? Math.round(vRect.width) : window.innerWidth - 32));
+        left = dr.left;
+      } else {
+        left = vRect ? vRect.right - panelW : r.right - panelW;
+      }
     } else if (colW > NORMAL_W + 40) {
       // 常规但右栏偏宽：靠右栏右缘对齐
       left = r.right - panelW;
@@ -550,7 +584,13 @@
       const overlapsX = panelLeftVp < vRect.right - 20 && (panelLeftVp + panelW) > vRect.left + 20;
       const overlapsY = panelTopVp < vRect.bottom - 20 && panelBottomVp > vRect.top + 20;
       if (overlapsX && overlapsY) {
-        top = vRect.bottom + window.scrollY + 12; // 移到视频下方（转回文档坐标）
+        // 优先落到弹幕列表下方，其次视频下方
+        let fallback = vRect.bottom + window.scrollY + 12;
+        if (dmMod) {
+          const dr2 = dmMod.getBoundingClientRect();
+          fallback = Math.max(fallback, dr2.bottom + window.scrollY + 8);
+        }
+        top = fallback;
         document.body.classList.add('vc-bili-wide'); // 按宽屏预留策略处理
       }
     }
