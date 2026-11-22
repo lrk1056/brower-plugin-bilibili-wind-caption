@@ -213,7 +213,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (/锘|锛|涓|浣/.test(xml.slice(0, 200))) {
             try { xml = new TextDecoder('gb18030').decode(buf); } catch (e) {}
           }
-          const list = [];
+          const all = [];
           const re = /<d\s+p="([^"]*)"[^>]*>([\s\S]*?)<\/d>/g;
           let m;
           while ((m = re.exec(xml))) {
@@ -221,10 +221,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const timeSec = parseFloat(p[0]) || 0;
             const sendTs = parseInt(p[4], 10) || 0;
             const content = m[2].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
-            if (content) list.push({ timeMs: Math.round(timeSec * 1000), sendTs, content });
+            if (!content) continue;
+            all.push({ timeMs: Math.round(timeSec * 1000), sendTs, content });
           }
-          list.sort((a, b) => a.timeMs - b.timeMs);
-          console.log('[vc-bg] LOAD_BILI_DANMAKU cid', cid, '-> count', list.length);
+          all.sort((a, b) => a.timeMs - b.timeMs);
+          // 内容去重：相同弹幕文本只保留一条（按视频时间排序后保留最早出现的那条）
+          const seen = new Set();
+          const list = all.filter(d => {
+            const key = d.content.replace(/\s+/g, ' ').toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          console.log('[vc-bg] LOAD_BILI_DANMAKU cid', cid, '-> count', list.length, '(去重后)');
           return { ok: true, list };
         } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
       }
