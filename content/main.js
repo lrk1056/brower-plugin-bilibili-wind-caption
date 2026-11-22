@@ -115,7 +115,9 @@
     const chapters = await adapter.chapters();
     if (chapters && chapters.length && !state.chapters.length) state.chapters = U.chaptersFromData(chapters);
     if (!state.chapters.length && state.sources.length) state.chapters = U.autoChapters(state.sources[state.activeSource].sentences, 5);
-    if (state.sources.length > before) { await persistData(); pushState(); }
+    if (state.sources.length > before) await persistData();
+    // 无论是否拿到字幕都要推一次状态：无字幕时也必须让 syncAutoFold 执行折叠判断
+    pushState();
   }
 
   /* ---------- 添加/解析字幕源 ---------- */
@@ -579,17 +581,23 @@
       embedHeight: state.embedHeight, embedRange: embedHeightRange()
     };
   }
-  // 自动展开/折叠：依据"是否有可显示字幕句"的边界变化切换折叠态。
-  // 只在 无→有（autoExpand 展开）/ 有→无（autoFold 折叠）时各触发一次，
-  // 不会在字幕持续存在期间反复覆盖用户的手动折叠。
+  // 自动展开/折叠：依据"是否有可显示字幕句"切换折叠态，受通用配置管控：
+  //   autoExpand=true  → 有字幕时自动展开
+  //   autoFold=true    → 无字幕 / 字幕消失时自动折叠
+  // 边界变化或首次判定都会执行；字幕持续存在期间不反复覆盖用户手动折叠。
   function syncAutoFold() {
     const s = state.settings || {};
     const has = currentSentences().length > 0;
     const prev = state.lastHasSubtitle;
-    if (prev === null) { state.lastHasSubtitle = has; return; } // 首次只记录，不折叠新打开的面板
-    if (prev !== has) {
-      if (has && s.autoExpand) state.folded = false;
-      else if (!has && s.autoFold) state.folded = true;
+    const firstCheck = prev === null;
+    if (firstCheck || prev !== has) {
+      if (!has) {
+        // 无字幕 / 字幕消失 → 折叠
+        if (s.autoFold) state.folded = true;
+      } else if (s.autoExpand) {
+        // 有字幕 → 展开
+        state.folded = false;
+      }
       state.lastHasSubtitle = has;
     }
   }
