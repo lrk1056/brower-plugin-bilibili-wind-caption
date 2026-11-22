@@ -428,19 +428,41 @@
     return idx < kids.length - 1;
   }
 
+  // 检测 B站宽屏 / 网页全屏模式：这类模式下播放器横向铺满、右栏栏目被移到视频下方重排。
+  // 依据常见标记：body/html 上的宽屏 class，或右栏宽度明显超过常规值。
+  function isWideScreenMode(right) {
+    // 最直接可靠：常规右栏约 350~420px，宽屏时右栏被拉宽/重排。
+    if (right) {
+      const rw = right.getBoundingClientRect().width;
+      if (rw > 520) return true;
+    }
+    // 播放器宽度接近整屏宽时，说明处于宽屏/网页全屏
+    const player = document.querySelector('.bpx-player-wrap, .video-player-box, #bilibili_player');
+    if (player) {
+      const pw = player.getBoundingClientRect().width;
+      if (pw > window.innerWidth * 0.82) return true;
+    }
+    // B站宽屏时在 html/body 上打的类名
+    const cls = ((document.body && document.body.className) || '') + ' ' + ((document.documentElement && document.documentElement.className) || '');
+    if (/(^|\s)(widescreen|web-fullscreen|bpx-player-fullscreen|player-fullscreen)(\s|$)/i.test(cls)) return true;
+    return false;
+  }
+
   // B站：把 body 上的 host 摆到"UP主卡片下方、弹幕列表上方"的预留空白里。
   // 只改 body/host 的样式和 CSS 变量，不增删 B站 Vue 容器内的任何节点。
   function positionSideColumnHost(target) {
     if (state.site !== 'bilibili' || state.panelMode !== 'embed' || !state.host) return;
     const doc = document.documentElement;
     if (!doc || !document.body) return;
+    const right = (target && target.right && target.right.isConnected ? target.right : document.querySelector('.right-container-inner'));
+    const wide = isWideScreenMode(right);
+    document.body.classList.toggle('vc-bili-wide', wide); // 宽屏用不同的 CSS 预留策略
     const range = embedHeightRange();
     const height = state.folded ? 44 : Math.min(range.max, Math.max(range.min, state.embedHeight || range.min));
     doc.style.setProperty('--vc-embed-panel-height', height + 'px');
     doc.style.setProperty('--vc-embed-panel-space', (height + 12) + 'px');
     document.body.classList.add('vc-bili-embed-active');
 
-    const right = (target && target.right && target.right.isConnected ? target.right : document.querySelector('.right-container-inner'));
     if (!right || !right.isConnected) {
       document.body.classList.add('vc-bili-embed-no-danmaku');
       return;
@@ -465,17 +487,39 @@
     const r = right.getBoundingClientRect();
     const up = right.querySelector('.up-panel-container');
     let top;
-    if (anchor) {
-      // anchor 已含我们预留的 margin-top，减回去就是空白起点（UP主卡片下方）。
+    if (wide) {
+      // 宽屏：右栏容器顶部由 CSS padding-top 预留了空白，面板落在其中
+      top = r.top + window.scrollY;
+    } else if (anchor) {
+      // 常规：anchor 已含我们预留的 margin-top，减回去就是空白起点（UP主卡片下方）。
       top = anchor.getBoundingClientRect().top + window.scrollY - height - 12;
     } else if (up && up.parentElement === right) {
       top = up.getBoundingClientRect().bottom + window.scrollY + 12;
     } else {
       top = r.top + window.scrollY + 12;
     }
-    state.host.style.left = Math.round(r.left + window.scrollX) + 'px';
+    // 宽度对齐右栏内容：宽屏/网页全屏时右栏会变宽甚至铺满，
+    // 面板不应跟着变成整行，取一个与右栏栏目一致的合理宽度并靠右对齐。
+    const NORMAL_W = 350;                 // 常规右栏宽度
+    const MAX_W = 420;                    // 宽屏下面板最大宽度
+    const colW = Math.max(1, r.width);
+    // 以 UP主卡片（右栏内容实际左边界）为参考，确定内容区左缘
+    let contentLeft = r.left;
+    if (up && up.isConnected) contentLeft = up.getBoundingClientRect().left;
+    const panelW = Math.min(MAX_W, Math.max(NORMAL_W, colW));
+    let left;
+    if (colW > NORMAL_W + 40) {
+      // 宽屏：右栏被拉宽，面板靠右栏右缘对齐（与右侧栏目右边界一致）
+      left = r.right - panelW;
+    } else {
+      // 常规：与右栏内容左缘对齐
+      left = contentLeft;
+    }
+    // 视口内夹紧，避免溢出屏幕
+    left = Math.max(8, Math.min(left, window.innerWidth - panelW - 8));
+    state.host.style.left = Math.round(left + window.scrollX) + 'px';
     state.host.style.top = Math.round(top) + 'px';
-    state.host.style.width = Math.round(r.width) + 'px';
+    state.host.style.width = Math.round(panelW) + 'px';
   }
 
   // 保证 host 在正确锚点、iframe 挂在其内。可被反复调用（幂等）。

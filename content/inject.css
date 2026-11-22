@@ -89,6 +89,20 @@ body.vc-bili-embed-active.vc-bili-embed-no-danmaku .right-container-inner > .rcm
   margin-top: var(--vc-embed-panel-space, 0px) !important;
 }
 
+/* ===== 宽屏 / 网页全屏模式适配 =====
+   宽屏下 B站把右栏栏目移到视频下方横向重排，逐个栏目加 margin-top 会推歪整个布局。
+   改为：取消逐栏 margin，只在右栏容器顶部整体预留一段空白，面板覆盖在该空白内，
+   与右栏内容同宽对齐、随页面滚动，不干扰 Vue 的子节点排布。 */
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .video-pod-above-modules,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > #danmukuBox,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .danmaku-box,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .rcmd-tab {
+  margin-top: 0 !important;
+}
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner {
+  padding-top: var(--vc-embed-panel-space, 0px);
+}
+
 /* 面板关闭后的重开入口：仅在页面内没有面板时显示 */
 #vc-launcher {
   position: fixed;
