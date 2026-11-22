@@ -90,18 +90,17 @@ body.vc-bili-embed-active.vc-bili-embed-no-danmaku .right-container-inner > .rcm
 }
 
 /* ===== 宽屏 / 网页全屏模式适配 =====
-   宽屏下 B站把播放器铺满、右栏栏目移到视频下方。为避免逐栏 margin 推歪布局，
-   这里统一取消逐栏 margin，并在视频之后的第一个栏目容器顶部整体预留空白。 */
+   宽屏下 B站把右栏栏目移到视频下方（横向重排）。此时面板由 JS 绝对定位到视频下方，
+   预留空白只需保证"右栏第一个子栏目"整体下移，避免与面板重叠。
+   用 :first-child 覆盖所有可能的栏目节点，不依赖具体 class 名。 */
 body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .video-pod-above-modules,
 body.vc-bili-embed-active.vc-bili-wide .right-container-inner > #danmukuBox,
 body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .danmaku-box,
 body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .rcmd-tab {
   margin-top: 0 !important;
 }
-/* 宽屏：右栏容器顶部预留面板高度，栏目自然排在面板下方 */
-body.vc-bili-embed-active.vc-bili-wide .right-container,
-body.vc-bili-embed-active.vc-bili-wide .right-container-inner {
-  padding-top: var(--vc-embed-panel-space, 0px) !important;
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > *:first-child {
+  margin-top: var(--vc-embed-panel-space, 0px) !important;
 }
 
 /* 面板关闭后的重开入口：仅在页面内没有面板时显示 */
