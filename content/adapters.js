@@ -1,12 +1,9 @@
-/* 站点适配器：Bilibili / YouTube。提取 tid、vid、标题、字幕轨道、章节、视频元素。
+/* 站点适配器：仅支持 Bilibili。提取 tid、vid、标题、字幕轨道、章节、视频元素。
  * 全局 VC.adapters。*/
 (function (root) {
   const VC = root.VC || (root.VC = {});
   const href = location.href;
 
-  function getVideoEl() {
-    return document.querySelector('video');
-  }
   function param(name) {
     try { return new URLSearchParams(location.search).get(name); } catch (e) { return null; }
   }
@@ -107,63 +104,6 @@
     }
   };
 
-  const youtube = {
-    id: 'youtube',
-    match: () => /youtube\.com/i.test(href) || /youtu\.be/i.test(href),
-    tid: () => param('v') || (location.pathname.match(/(?:embed|shorts)\/([^\/?]+)/) || [])[1] || 'youtube',
-    vid: () => '1',
-    title: () => {
-      const el = document.querySelector('meta[property="og:title"], #title h1, h1.title');
-      return el ? (el.getAttribute('content') || el.textContent || '').trim() : (document.title || 'YouTube 视频');
-    },
-    subtitleSources: async () => {
-      const sources = [];
-      try {
-        const cap = await VC.store.get('capturedSubtitles', []);
-        // 仅保留当前视频（存储时已按 videoId 过滤，内容脚本侧再次校验）
-        cap.forEach(c => {
-          const u = c.url || '';
-          if (!/youtube|youtubedev/i.test(u)) return;
-          sources.push({ url: u, lang: c.lang || extractedLang(u), name: c.lang || extractedLang(u), content: c.content });
-        });
-      } catch (e) {}
-      return sources;
-    },
-    chapters: async () => {
-      // ytInitialData 中的 chapterRenderer
-      try {
-        const data = root.ytInitialData;
-        const out = [];
-        const walk = node => {
-          if (!node || typeof node !== 'object') return;
-          if (node.macroMarkersListItemRenderer) {
-            const r = node.macroMarkersListItemRenderer;
-            out.push({
-              title: (r.title && r.title.simpleText) || '',
-              description: '',
-              startMs: ((r.onTap && r.onTap.commandExecutorCommand && r.onTap.commandExecutorCommand.commands || [])
-                .find(c => c.seekToSecondsCommand) || {}).seekToSecondsCommand
-                ? +((r.onTap.commandExecutorCommand.commands.find(c => c.seekToSecondsCommand)).seekToSecondsCommand.seekToSeconds) * 1000
-                : 0
-            });
-          }
-          Object.values(node).forEach(walk);
-        };
-        if (data) walk(data);
-        return out.sort((a, b) => a.startMs - b.startMs);
-      } catch (e) { return []; }
-    }
-  };
-
-  function extractedLang(url) {
-    const m = url.match(/[?&]lang=([^&]+)/);
-    if (m) {
-      const map = { 'zh-CN': '中文(简体)', 'zh-TW': '中文(繁体)', 'en': '英语', 'ja': '日语' };
-      return map[decodeURIComponent(m[1])] || decodeURIComponent(m[1]);
-    }
-    return '字幕';
-  }
-
   const fallback = {
     id: 'fallback', match: () => true,
     tid: () => 'local', vid: () => 'video',
@@ -173,10 +113,8 @@
   };
 
   function detect() {
-    if (bilibili.match()) return bilibili;
-    if (youtube.match()) return youtube;
-    return fallback;
+    return bilibili.match() ? bilibili : fallback;
   }
 
-  VC.adapters = { detect, bilibili, youtube, fallback };
+  VC.adapters = { detect, bilibili, fallback };
 })(typeof window !== 'undefined' ? window : globalThis);

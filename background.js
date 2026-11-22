@@ -196,7 +196,7 @@ async function registerCapture() {
   try {
     await chrome.scripting.registerContentScripts([{
       id: 'vc-capture',
-      matches: ['https://*.bilibili.com/*', 'https://*.youtube.com/*'],
+      matches: ['https://*.bilibili.com/*'],
       js: ['inject/capture-main.js'],
       runAt: 'document_start',
       world: 'MAIN',

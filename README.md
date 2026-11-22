@@ -1,12 +1,12 @@
 # WindCaption · 观语听风字幕
 
-WindCaption · 观语听风字幕 —— 按 vCaptions 2.4.6 功能点裁剪复刻的浏览器插件，**仅支持 Bilibili / YouTube**、**无笔记模块**。
+WindCaption · 观语听风字幕 —— 按 vCaptions 2.4.6 功能点裁剪复刻的浏览器插件，**仅支持 Bilibili**、**无笔记模块**。
 
 ## 功能范围
 
 | 模块 | 内容 |
 |---|---|
-| 1 字幕获取与站点适配 | Bilibili/YouTube 字幕拦截（MAIN world fetch/XHR）、ytInitialData 章节、`__playinfo__` 字幕轨道、字幕刷新、缓存持久化 |
+| 1 字幕获取与站点适配 | Bilibili 字幕拦截（MAIN world fetch/XHR）、`view_points` 章节、`__playinfo__` 字幕轨道、字幕刷新、缓存持久化 |
 | 2 字幕列表核心展示 | 列表视图（带时间戳、点击跳转、高亮、跟随滚动）/ 全文视图（语义合并段落、点段落跳转）、搜索筛选、多选、展开折叠、智能标点、说话人 |
 | 3 翻译与双语 | AI/Google/小牛/DeepL 服务配置（BYOK，OpenAI 兼容）、全量翻译、第二字幕双语、多选批量复制/翻译、章节翻译 |
 | 4 章节 | AI 生成（含描述/段落）、章节列表/上下章跳转、章节进度条、删除章节 |
@@ -14,13 +14,13 @@ WindCaption · 观语听风字幕 —— 按 vCaptions 2.4.6 功能点裁剪复�
 | 6 显示形态与布局 | 页面内嵌入、字幕条（B站）、网站配置、5 个 Tab 显隐、自动插入/展开/折叠 |
 | 7 技术架构 | Manifest V3、BG SW、MAIN 世界拦截、iframe 面板 + postMessage 分层协议、localStorage 缓存 |
 
-> 不含：账号/VIP、AI 对话、音频转录、笔记、精调、样式 Tab、Fallback 通用站点、本地字幕上传。
+> 不含：账号/VIP、AI 对话、音频转录、笔记、精调、样式 Tab、YouTube、Fallback 通用站点、本地字幕上传。
 
 ## 安装（Chrome / Edge）
 
 1. 打开 `chrome://extensions`，开启「开发者模式」。
 2. 点击「加载已解压的扩展程序」，选择本项目目录（WindCaption）。
-3. 打开 B站 或 YouTube 带字幕的视频，面板自动插入（可在设置关闭自动插入后点扩展图标开合）。
+3. 打开 B站 带字幕的视频，面板自动插入（可在设置关闭自动插入后点扩展图标开合）。
 
 ## 使用
 

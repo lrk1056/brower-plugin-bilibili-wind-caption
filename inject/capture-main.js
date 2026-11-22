@@ -10,10 +10,6 @@
       if (/i18n\//i.test(url)) return null;
       if (/subtitle|\.vtt/i.test(url)) return 'bilibili';
     }
-    // YouTube timedtext
-    if (/youtube/i.test(location.hostname) || /youtube/i.test(url)) {
-      if (/timedtext|api\/timedtext|caption/i.test(url)) return 'youtube';
-    }
     return null;
   };
   // 只放行“确实像字幕”的响应，避免把语言包 / 接口配置 JSON 当字幕转发，
@@ -30,16 +26,8 @@
   }
   function emit(url, body, site) {
     let text = body;
-    const isYtXml = /timedtext/i.test(url) && /<transcript>/.test(text);
-    if (isYtXml) {
-      // XML 字幕 -> 提取文本行
-      const lines = [...text.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)].map(m =>
-        (m[1] || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/<[^>]+>/g, '').trim()
-      ).filter(Boolean);
-      text = lines.join('\n');
-    }
     if (!text || text.length < 2 || text.length > 2_000_000) return;
-    if (!isYtXml && !looksLikeSubtitle(text)) return;
+    if (!looksLikeSubtitle(text)) return;
     document.dispatchEvent(new CustomEvent(EVENT, { detail: { url, site, text } }));
   }
 

@@ -115,7 +115,7 @@
   function renderAll() {
     loadAppearanceFromSettings();
     applyDisplayDensity();
-    $('#site-tag').textContent = ({ bilibili: 'Bilibili', youtube: 'YouTube' })[S.site] || S.site || '—';
+    $('#site-tag').textContent = S.site === 'bilibili' ? 'Bilibili' : (S.site || '—');
     $('#chip-source').textContent = '字幕：' + ((S.sources[S.activeSource] || {}).name || '—');
     $('#chip-second').textContent = '第二字幕：' + (S.secondSource >= 0 || Object.keys(S.second).length ? '开' : '关闭');
     $('#chip-count').textContent = view === 'article'
@@ -167,7 +167,7 @@
     if (!S.sentences.length) {
       const hint = S.needLoginSubtitle && S.site === 'bilibili'
         ? '该视频字幕需要登录 B站 才能获取，请登录后再刷新页面'
-        : 'B站/YouTube 打开带字幕的视频即可自动获取';
+        : '打开带字幕的 B站视频即可自动获取';
       box.innerHTML = `<div class="empty">暂无字幕<br><span class="muted small">${hint}</span></div>`;
       return;
     }

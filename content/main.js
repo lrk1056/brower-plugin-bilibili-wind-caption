@@ -78,7 +78,7 @@
       state.secondSource = typeof saved.secondSource === 'number' ? saved.secondSource : -1;
       pushState();
     }
-    // 站点原生字幕：B站/YouTube 字幕 API 可能稍后才可用，异步加载 + 重试
+    // B站字幕 API 可能稍后才可用，异步加载 + 重试
     loadNativeSubtitles().catch(e => console.debug('[vc] loadNativeSubtitles error', e));
     if (!state.sources.length) {
       [2000, 5000, 9000].forEach(delay => setTimeout(() => {
@@ -738,13 +738,8 @@
   document.addEventListener(CAPTURE_EVENT, async e => {
     const { url, site, text } = e.detail || {};
     if (!text || !site) return;
-    // YouTube：只保留当前视频（URL 中带 videoId 的 timedtext）
-    if (site === 'youtube') {
-      const vid = adapter.tid();
-      if (vid && vid !== 'youtube' && !url.includes(vid)) return;
-    }
     const lang = (url.match(/[?&]lang=([^&]+)/) || [])[1] || '';
-    await addSource({ url, name: lang || 'CC 字幕', lang: decodeURIComponent(lang), content: text }, true);
+    await addSource({ url, name: lang || '字幕', lang: decodeURIComponent(lang), content: text }, true);
     // 注意：字幕 JSON 的 body 是字幕行，不是章节，不要用它覆盖章节。
   });
 
