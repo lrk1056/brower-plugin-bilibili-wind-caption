@@ -87,9 +87,6 @@
     $('#chip-count').textContent = view === 'article'
       ? `${S.sentences.length} 条 · ${U.buildParagraphs(S.sentences).length} 段`
       : `共 ${S.sentences.length} 条`;
-    // tabs 显隐
-    const tabs = (S.settings.tabs) || {};
-    $$('.tab').forEach(t => t.classList.toggle('hidden', t.dataset.tab !== 'subtitle' && tabs[t.dataset.tab] === false));
     renderChapters(); renderList(); renderChapterStrip();
     $('#tr-second').checked = S.secondSource >= 0 || Object.keys(S.second).length > 0;
     // 折叠状态 → 图标旋转由 CSS 依据 aria-expanded 驱动（展开朝上 / 折叠朝下）

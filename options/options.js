@@ -56,11 +56,15 @@
     $('#d-line').value = lh;
     applyPreview();
 
-    $('#tab-toggles').innerHTML = Object.keys(DAO_TABS).map(k =>
-      `<label><input type="checkbox" data-tab="${k}" ${s.tabs[k] !== false ? 'checked' : ''}> ${DAO_TABS[k]}</label>`).join('');
+    applyCaptionBarPreview();
     renderServices();
   }
-  const DAO_TABS = { chapter: '章节', translate: '翻译', subtitle: '字幕' };
+  // 字幕条内容预览：按三个开关显隐对应区块
+  function applyCaptionBarPreview() {
+    $('#cbp-chProgress').classList.toggle('hidden', !$('#b-chProgress').checked);
+    $('#cbp-chDetail').classList.toggle('hidden', !$('#b-chDetail').checked);
+    $('#cbp-subtitle').classList.toggle('hidden', !$('#b-subtitle').checked);
+  }
 
   /* ---------- 服务 ---------- */
   function renderServices() {
@@ -123,6 +127,9 @@
   $('#d-font').addEventListener('input', applyPreview);
   $('#d-line').addEventListener('input', applyPreview);
   $('#d-density').addEventListener('change', applyPreview);
+  $('#b-chProgress').addEventListener('change', applyCaptionBarPreview);
+  $('#b-chDetail').addEventListener('change', applyCaptionBarPreview);
+  $('#b-subtitle').addEventListener('change', applyCaptionBarPreview);
 
   $('#btn-add-service').addEventListener('click', () => {
     settings.services = settings.services || [];
@@ -155,7 +162,6 @@
     settings.fontSize = Math.min(20, Math.max(12, +$('#d-font').value || 15));
     settings.subLineHeight = Math.min(2, Math.max(1.2, +$('#d-line').value || 1.55));
     delete settings.striped; // 条纹色功能已移除
-    $$('#tab-toggles input').forEach(i => settings.tabs[i.dataset.tab] = i.checked);
     settings.defaultAiService = $('#default-ai').value;
     settings.defaultTranslateService = $('#default-translate').value;
     delete settings.lang; // 界面语言固定中文
