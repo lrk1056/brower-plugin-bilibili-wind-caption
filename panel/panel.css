@@ -106,7 +106,6 @@ button{cursor:pointer}
 #root[data-density="compact"] .sub{padding-top:4px;padding-bottom:4px}
 #root[data-density="comfortable"] .sub{padding-top:11px;padding-bottom:11px}
 /* 条纹：奇偶行异色；当前句/选中/悬停高亮优先 */
-#root.striped .sub:nth-child(odd):not(.cur):not(.sel):not(:hover){background:var(--s2)}
 .sub .t{color:var(--ac);font-size:10px;font-variant-numeric:tabular-nums;flex:none;padding-top:2px}
 .sub .b{flex:1;min-width:0;word-break:break-word}
 .sub .sec{color:var(--mu);font-size:11px;margin-top:2px}
@@ -181,17 +180,3 @@ button{cursor:pointer}
   padding:8px 14px;border-radius:7px;opacity:0;pointer-events:none;transition:.2s;z-index:50;font-size:11px;max-width:90%}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 input[type=checkbox]{accent-color:var(--pr)}
-
-/* ===== 外观设置 Tab ===== */
-.setting-block{padding:12px 14px;border-bottom:1px solid var(--bd)}
-.setting-label{font-size:12px;font-weight:600;margin-bottom:9px;display:flex;align-items:center;gap:8px}
-.setting-val{margin-left:auto;font-size:11px;color:var(--ac);font-weight:400}
-.setting-help{font-size:10px;color:var(--mu);margin-top:6px}
-.setting-seg{width:100%}
-.setting-seg button{flex:1;text-align:center;padding:6px 0}
-.slider-row{display:flex;align-items:center;gap:8px}
-.slider-row input[type=range]{flex:1;accent-color:var(--pr);height:4px}
-.slider-min,.slider-max{font-size:10px;color:var(--mu);width:22px;text-align:center}
-.setting-preview{margin:12px 14px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px}
-.pv-sent{font-size:var(--sub-font);line-height:var(--sub-line);color:var(--tx);padding:2px 0}
-.pv-sent.cur{color:var(--cur-tx);font-weight:700}

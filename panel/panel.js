@@ -37,78 +37,40 @@
   }
   function titleAt(ms) { return U.chapterTitleAt(S.chapters, ms) || '字幕'; }
 
-  /* ---------- 外观设置（主题 / 字号 / 行高） ---------- */
+  /* ---------- 外观（主题 / 字号 / 行高）：只读设置页保存的值，不在面板内修改 ---------- */
   const APPEARANCE = { theme: 'gray', fontSize: 13, lineHeight: 1.55 };
   function applyAppearance() {
     const root = document.documentElement;
     root.setAttribute('data-theme', APPEARANCE.theme);
     root.style.setProperty('--sub-font', APPEARANCE.fontSize + 'px');
     root.style.setProperty('--sub-line', APPEARANCE.lineHeight);
-    // 预览区同步
-    if ($('#font-val')) $('#font-val').textContent = APPEARANCE.fontSize + 'px';
-    if ($('#line-val')) $('#line-val').textContent = APPEARANCE.lineHeight.toFixed(2).replace(/0$/, '');
-    if ($('#font-range')) $('#font-range').value = APPEARANCE.fontSize;
-    if ($('#line-range')) $('#line-range').value = APPEARANCE.lineHeight;
-    $$('#theme-seg button').forEach(b => b.classList.toggle('active', b.dataset.theme === APPEARANCE.theme));
   }
-  function saveAppearance() {
-    if (!S.settings || !Object.keys(S.settings).length) return;
-    S.settings.theme = APPEARANCE.theme;
-    S.settings.fontSize = APPEARANCE.fontSize;
-    S.settings.subLineHeight = APPEARANCE.lineHeight;
-    call('SAVE_SETTINGS', { settings: S.settings });
-  }
-  // 从 STATE 的设置初始化（仅首次或设置变化时）
-  let appearanceLoaded = false;
+  let appearanceKey = '';
   function loadAppearanceFromSettings() {
-    if (appearanceLoaded || !S.settings || !Object.keys(S.settings).length) return;
-    appearanceLoaded = true;
+    if (!S.settings || !Object.keys(S.settings).length) return;
     let t = S.settings.theme || 'gray';
     if (t === 'system') t = 'auto';
     if (!['light','dark','gray','auto'].includes(t)) t = 'gray';
-    // 旧默认 auto 且用户未显式选过主题 → 迁移到新默认 gray；显式选择 auto 的行为保留
     if (t === 'auto' && !S.settings.themePinned) t = 'gray';
-    APPEARANCE.theme = t;
     let fs = Number(S.settings.fontSize);
     if (!fs || fs < 12 || fs > 20) fs = 13;
-    APPEARANCE.fontSize = fs;
     let lh = Number(S.settings.subLineHeight);
     if (!lh || lh < 1.2 || lh > 2) lh = 1.55;
-    APPEARANCE.lineHeight = lh;
+    const key = [t, fs, lh].join('|');
+    if (key === appearanceKey) return;
+    appearanceKey = key;
+    APPEARANCE.theme = t; APPEARANCE.fontSize = fs; APPEARANCE.lineHeight = lh;
     applyAppearance();
   }
-  $$('#theme-seg button').forEach(b => b.addEventListener('click', () => {
-    APPEARANCE.theme = b.dataset.theme;
-    if (S.settings) S.settings.themePinned = true;
-    applyAppearance(); saveAppearance();
-  }));
-  $('#font-range').addEventListener('input', e => {
-    APPEARANCE.fontSize = Math.min(20, Math.max(12, +e.target.value));
-    applyAppearance();
-  });
-  $('#font-range').addEventListener('change', () => saveAppearance());
-  $('#line-range').addEventListener('input', e => {
-    APPEARANCE.lineHeight = Math.min(2, Math.max(1.2, +e.target.value));
-    applyAppearance();
-  });
-  $('#line-range').addEventListener('change', () => saveAppearance());
-  $('#btn-reset-appearance').addEventListener('click', () => {
-    APPEARANCE.theme = 'gray'; APPEARANCE.fontSize = 13; APPEARANCE.lineHeight = 1.55;
-    if (S.settings) S.settings.themePinned = false;
-    applyAppearance(); saveAppearance(); toast('已恢复默认外观');
-  });
 
-  /* ---------- 显示密度 / 条纹：此前只存不用，接入实际渲染 ---------- */
-  let displayStyleKey = '';
+  /* ---------- 显示密度 ---------- */
+  let displayDensity = '';
   function applyDisplayDensity() {
     const s = S.settings || {};
     const density = ['compact', 'standard', 'comfortable'].includes(s.density) ? s.density : 'standard';
-    const striped = !!s.striped;
-    const key = density + '|' + striped;
-    if (key === displayStyleKey) return;
-    displayStyleKey = key;
+    if (density === displayDensity) return;
+    displayDensity = density;
     $('#root').setAttribute('data-density', density);
-    $('#root').classList.toggle('striped', striped);
   }
 
   /* ---------- 渲染 ---------- */

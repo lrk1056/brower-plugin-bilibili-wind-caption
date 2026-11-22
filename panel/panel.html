@@ -34,7 +34,6 @@
     <button class="tab active" data-tab="subtitle">字幕</button>
     <button class="tab hidden" data-tab="chapter">章节</button>
     <button class="tab hidden" data-tab="translate">翻译</button>
-    <button class="tab" data-tab="appearance">设置</button>
   </nav>
 
   <!-- 字幕 -->
@@ -112,44 +111,6 @@
       <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
     </div>
     <p class="muted small">翻译服务与 AI 服务请在设置页配置（OpenAI 兼容协议，可接 DeepSeek / Gemini / Ollama）。</p>
-  </section>
-
-  <!-- 设置（外观） -->
-  <section class="tabpane hidden" data-pane="appearance">
-    <div class="section-head"><h3>外观设置</h3></div>
-    <div class="setting-block">
-      <div class="setting-label">主题色</div>
-      <div class="seg setting-seg" id="theme-seg">
-        <button data-theme="gray">灰色</button>
-        <button data-theme="light">亮色</button>
-        <button data-theme="dark">暗色</button>
-        <button data-theme="auto">自动</button>
-      </div>
-      <div class="setting-help">灰色为默认；自动 = 跟随系统外观</div>
-    </div>
-    <div class="setting-block">
-      <div class="setting-label">字体大小 <span class="setting-val" id="font-val">13px</span></div>
-      <div class="slider-row">
-        <span class="slider-min">12</span>
-        <input type="range" id="font-range" min="12" max="20" step="1" value="13">
-        <span class="slider-max">20</span>
-      </div>
-      <div class="setting-help">限制在 12–20px，避免排版溢出</div>
-    </div>
-    <div class="setting-block">
-      <div class="setting-label">行高 <span class="setting-val" id="line-val">1.55</span></div>
-      <div class="slider-row">
-        <span class="slider-min">1.2</span>
-        <input type="range" id="line-range" min="1.2" max="2" step="0.05" value="1.55">
-        <span class="slider-max">2.0</span>
-      </div>
-      <div class="setting-help">限制在 1.2–2.0，避免排版溢出</div>
-    </div>
-    <div class="setting-preview" id="setting-preview">
-      <div class="pv-sent cur">这是当前播放的字幕句子，用于预览样式效果。</div>
-      <div class="pv-sent">这是下一句字幕，主题色、字号与行高会实时生效。</div>
-    </div>
-    <button class="block" id="btn-reset-appearance">恢复默认</button>
   </section>
 
   <div class="toast" id="toast"></div>

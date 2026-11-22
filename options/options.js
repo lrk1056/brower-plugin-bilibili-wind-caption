@@ -7,14 +7,28 @@
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 1600); }
   function uid() { return 'svc_' + Math.random().toString(36).slice(2, 8); }
+
   // 应用设置页主题（与面板一致：gray/light/dark/auto）
   function applyPageTheme(theme) {
     let t = theme || 'gray';
     if (t === 'system') t = 'auto';
-    if (!['light','dark','gray','auto'].includes(t)) t = 'gray';
-    // 旧默认 auto 且未显式选过主题 → 迁移到新默认 gray
+    if (!['light', 'dark', 'gray', 'auto'].includes(t)) t = 'gray';
     if (t === 'auto' && settings && !settings.themePinned) t = 'gray';
     document.documentElement.setAttribute('data-theme', t);
+  }
+  // 实时更新字幕预览（受主题/字号/行高/密度控制）
+  function applyPreview() {
+    const root = document.documentElement;
+    const fs = Math.min(20, Math.max(12, +$('#d-font').value || 15));
+    const lh = Math.min(2, Math.max(1.2, +$('#d-line').value || 1.55));
+    root.style.setProperty('--pv-font', fs + 'px');
+    root.style.setProperty('--pv-line', lh);
+    const density = $('#d-density').value;
+    const box = $('#subtitle-preview');
+    box.classList.toggle('dense-compact', density === 'compact');
+    box.classList.toggle('dense-comfortable', density === 'comfortable');
+    $('#d-font-val').textContent = fs + 'px';
+    $('#d-line-val').textContent = lh.toFixed(2).replace(/0$/, '');
   }
 
   async function init() {
@@ -29,20 +43,24 @@
     $('#g-smartPunctuation').checked = !!s.smartPunctuation;
     $('#g-theme').value = (s.theme === 'auto' ? 'system' : (s.theme || 'gray'));
     applyPageTheme(s.theme);
-    $('#g-subtitleBar').checked = !!(s.subtitleBar && s.subtitleBar.enabled);
 
-    $('#d-density').value = s.density || 'standard';
-    $('#d-font').value = s.fontSize || 15;
-    $('#d-striped').checked = !!s.striped;
+    $('#g-subtitleBar').checked = !!(s.subtitleBar && s.subtitleBar.enabled);
     $('#b-chProgress').checked = s.subtitleBar.showChapterProgress !== false;
     $('#b-chDetail').checked = !!s.subtitleBar.showChapterDetail;
     $('#b-subtitle').checked = s.subtitleBar.showSubtitle !== false;
 
-    $('#tab-toggles').innerHTML = Object.keys(SHORTCUT_TABS).map(k =>
-      `<label><input type="checkbox" data-tab="${k}" ${s.tabs[k] !== false ? 'checked' : ''}> ${SHORTCUT_TABS[k]}</label>`).join('');
+    $('#d-density').value = s.density || 'standard';
+    const fs = Math.min(20, Math.max(12, +s.fontSize || 15));
+    const lh = Math.min(2, Math.max(1.2, +s.subLineHeight || 1.55));
+    $('#d-font').value = fs;
+    $('#d-line').value = lh;
+    applyPreview();
+
+    $('#tab-toggles').innerHTML = Object.keys(DAO_TABS).map(k =>
+      `<label><input type="checkbox" data-tab="${k}" ${s.tabs[k] !== false ? 'checked' : ''}> ${DAO_TABS[k]}</label>`).join('');
     renderServices();
   }
-  const SHORTCUT_TABS = { chapter: '章节', translate: '翻译', subtitle: '字幕' };
+  const DAO_TABS = { chapter: '章节', translate: '翻译', subtitle: '字幕' };
 
   /* ---------- 服务 ---------- */
   function renderServices() {
@@ -96,11 +114,15 @@
   }
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
-  // 主题下拉实时预览
+  // 实时预览：主题 / 字号 / 行高 / 密度
   $('#g-theme').addEventListener('change', e => {
     if (settings) settings.themePinned = true;
     applyPageTheme(e.target.value);
+    applyPreview();
   });
+  $('#d-font').addEventListener('input', applyPreview);
+  $('#d-line').addEventListener('input', applyPreview);
+  $('#d-density').addEventListener('change', applyPreview);
 
   $('#btn-add-service').addEventListener('click', () => {
     settings.services = settings.services || [];
@@ -123,20 +145,20 @@
     settings.subtitleBar.showChapterProgress = $('#b-chProgress').checked;
     settings.subtitleBar.showChapterDetail = $('#b-chDetail').checked;
     settings.subtitleBar.showSubtitle = $('#b-subtitle').checked;
-    // 显示模式固定嵌入：清理历史遗留的 position/panelSide/悬浮窗字段，避免旧值再次生效
+    // 显示模式固定嵌入：清理历史遗留字段
     delete settings.display.position;
     delete settings.display.panelSide;
     delete settings.display.width;
     delete settings.display.height;
     delete settings.display.floatPos;
     settings.density = $('#d-density').value;
-    settings.fontSize = +$('#d-font').value || 15;
-    settings.striped = $('#d-striped').checked;
+    settings.fontSize = Math.min(20, Math.max(12, +$('#d-font').value || 15));
+    settings.subLineHeight = Math.min(2, Math.max(1.2, +$('#d-line').value || 1.55));
+    delete settings.striped; // 条纹色功能已移除
     $$('#tab-toggles input').forEach(i => settings.tabs[i.dataset.tab] = i.checked);
     settings.defaultAiService = $('#default-ai').value;
     settings.defaultTranslateService = $('#default-translate').value;
-    // 界面语言固定为中文：不再暴露该选项，也不写回 lang（由默认值 zh 兜底）
-    delete settings.lang;
+    delete settings.lang; // 界面语言固定中文
     await store.saveSettings(settings);
     $('#save-status').textContent = '✓ 已保存 ' + new Date().toLocaleTimeString();
     toast('设置已保存');
@@ -159,7 +181,6 @@
     const u = new URL(url);
     const key = u.host + u.pathname;
     settings.websiteConfigs = settings.websiteConfigs || {};
-    // 显示模式已固定嵌入，网站配置不再保存 position
     if (settings.websiteConfigs[key]) delete settings.websiteConfigs[key].position;
     await store.saveSettings(settings);
     toast('已保存，刷新网页后生效');

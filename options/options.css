@@ -65,3 +65,14 @@ button.mini.danger{background:none;border:1px solid var(--dg);color:var(--dg);pa
 .savebar span{color:var(--ok);font-size:12px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--toast);border:1px solid var(--bd);padding:9px 16px;border-radius:8px;opacity:0;transition:.2s;pointer-events:none}
 .toast.on{opacity:1}
+
+/* ===== 显示配置：滑块与字幕预览 ===== */
+.range-wrap{display:flex;align-items:center;gap:12px;min-width:240px}
+.range-wrap input[type=range]{flex:1;accent-color:var(--pr);height:4px;min-width:140px}
+.range-val{font-size:12px;color:var(--ac);min-width:48px;text-align:right;font-variant-numeric:tabular-nums}
+.preview-box{margin:8px 0 4px;padding:14px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:10px}
+.pv-line{font-size:var(--pv-font,15px);line-height:var(--pv-line,1.55);color:var(--tx);padding:3px 0}
+.pv-line.cur{color:var(--pr);font-weight:700}
+.pv-line.pv-second{color:var(--mu);font-style:italic;font-size:calc(var(--pv-font,15px) - 2px)}
+.preview-box.dense-compact .pv-line{padding:0 0}
+.preview-box.dense-comfortable .pv-line{padding:8px 0}

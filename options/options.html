@@ -10,32 +10,41 @@
 <div class="wrap">
   <aside class="side">
     <div class="logo">VC · 设置</div>
-    <a data-sec="general" class="active">通用配置</a>
-    <a data-sec="display">显示配置</a>
+    <a data-sec="display" class="active">显示配置</a>
     <a data-sec="services">AI / 翻译服务</a>
     <a data-sec="site">网站配置</a>
     <div class="side-foot"><button id="btn-reset-all" class="mini danger">恢复默认设置</button></div>
   </aside>
   <main class="main">
-    <section data-panel="general">
-      <h1>通用配置</h1>
+    <!-- 显示配置（合并原通用配置 + 面板外观设置） -->
+    <section data-panel="display">
+      <h1>显示配置</h1>
+
+      <h2>外观</h2>
+      <div class="item"><div><b>主题色</b><p>设置页与字幕面板同步生效</p></div><select id="g-theme"><option value="gray">灰色（默认）</option><option value="system">跟随系统</option><option value="dark">深色</option><option value="light">浅色</option></select></div>
+      <div class="item"><div><b>字体大小</b><p>限制在 12–20px，避免排版溢出</p></div><div class="range-wrap"><input type="range" id="d-font" min="12" max="20" step="1" value="15"><span class="range-val" id="d-font-val">15px</span></div></div>
+      <div class="item"><div><b>行高</b><p>限制在 1.2–2.0，避免排版溢出</p></div><div class="range-wrap"><input type="range" id="d-line" min="1.2" max="2" step="0.05" value="1.55"><span class="range-val" id="d-line-val">1.55</span></div></div>
+      <div class="item"><div><b>显示密度</b></div><select id="d-density"><option value="compact">紧凑</option><option value="standard">标准</option><option value="comfortable">宽松</option></select></div>
+
+      <h2>字幕预览</h2>
+      <div class="preview-box" id="subtitle-preview">
+        <div class="pv-line cur">这是当前播放的字幕，用于预览主题与排版效果。</div>
+        <div class="pv-line">这是下一句字幕，调整上方参数会实时生效。</div>
+        <div class="pv-line pv-second">This is a second subtitle line for preview.</div>
+      </div>
+
+      <h2>字幕列表行为</h2>
       <div class="item"><div><b>自动插入字幕列表</b><p>打开 B站视频时自动插入面板</p></div><input type="checkbox" id="g-autoInsert"></div>
       <div class="item"><div><b>自动展开</b><p>检测到字幕时自动展开面板</p></div><input type="checkbox" id="g-autoExpand"></div>
-      <div class="item"><div><b>自动折叠</b><p>字幕消失时自动折叠面板</p></div><input type="checkbox" id="g-autoFold"></div>
+      <div class="item"><div><b>自动折叠</b><p>字幕消失或无字幕时自动折叠面板</p></div><input type="checkbox" id="g-autoFold"></div>
       <div class="item"><div><b>智能标点</b><p>按语言自动补句间标点（中 / 英 / 日）</p></div><input type="checkbox" id="g-smartPunctuation"></div>
-      <div class="item"><div><b>主题</b></div><select id="g-theme"><option value="gray">灰色（默认）</option><option value="system">跟随系统</option><option value="dark">深色</option><option value="light">浅色</option></select></div>
-      <div class="item"><div><b>字幕条（B站悬浮字幕）</b><p>在视频上显示当前字幕的悬浮条</p></div><input type="checkbox" id="g-subtitleBar"></div>
-    </section>
 
-    <section data-panel="display" class="hidden">
-      <h1>显示配置</h1>
-      <div class="item"><div><b>显示密度</b></div><select id="d-density"><option value="compact">紧凑</option><option value="standard">标准</option><option value="comfortable">宽松</option></select></div>
-      <div class="item"><div><b>字体大小</b></div><select id="d-font"><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>18</option><option>20</option></select></div>
-      <div class="item"><div><b>条纹色（奇偶行异色）</b></div><input type="checkbox" id="d-striped"></div>
       <h2>字幕条内容</h2>
+      <div class="item"><div><b>字幕条（B站悬浮字幕）</b><p>在视频上显示当前字幕的悬浮条</p></div><input type="checkbox" id="g-subtitleBar"></div>
       <div class="item"><div><b>章节进度条</b></div><input type="checkbox" id="b-chProgress"></div>
       <div class="item"><div><b>章节详情条</b></div><input type="checkbox" id="b-chDetail"></div>
       <div class="item"><div><b>字幕条</b></div><input type="checkbox" id="b-subtitle"></div>
+
       <h2>功能 Tab 显隐</h2>
       <div class="tab-toggles" id="tab-toggles"></div>
     </section>
