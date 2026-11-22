@@ -115,7 +115,11 @@
   function renderAll() {
     loadAppearanceFromSettings();
     applyDisplayDensity();
-    $('#site-tag').textContent = S.site === 'bilibili' ? 'Bilibili' : (S.site || '—');
+    // 头部标注：无字幕时显示"无字幕"，有字幕时隐藏（不再显示站点标识）
+    const noSubtitle = !S.sentences || !S.sentences.length;
+    const tag = $('#site-tag');
+    tag.textContent = '无字幕';
+    tag.classList.toggle('hidden', !noSubtitle);
     $('#chip-source').textContent = '字幕：' + ((S.sources[S.activeSource] || {}).name || '—');
     $('#chip-second').textContent = '第二字幕：' + (S.secondSource >= 0 || Object.keys(S.second).length ? '开' : '关闭');
     $('#chip-count').textContent = view === 'article'
