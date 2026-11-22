@@ -220,13 +220,62 @@
   }
   function watchVideoSwitch() {
     if (hrefWatchStarted) return;
+    // 只在顶层页面判断换片：iframe 里也执行会导致 iframe 被 reload（页面闪烁/二次刷新观感）
+    if (window !== window.top) return;
     hrefWatchStarted = true;
     let last = videoIdentity();
     setInterval(() => {
       if (!extAlive()) return;
       const now = videoIdentity();
-      if (now !== last) { last = now; location.reload(); } // 真正换视频/分P才重载重建
+      if (now === last) return;
+      last = now;
+      // 仅当与当前状态记录的视频身份不同才重建，避免 URL 抖动引发无谓重建/闪烁
+      if (now === stateIdentity()) return;
+      // 仅处理视频页身份（含 BV/av），SPA 跳到首页等非视频页不做重建
+      if (!/(BV[0-9A-Za-z]{10}|\/av\d+)/.test(now)) return;
+      handleVideoSwitch();
     }, 1500);
+  }
+  function stateIdentity() {
+    return `${state.tid}|p=${state.vid || '1'}`;
+  }
+
+  // 站内切换视频/分P：原地重置状态并重新拉取，绝不 location.reload()（避免整页二次刷新）
+  let switchingVideo = false;
+  async function handleVideoSwitch() {
+    if (switchingVideo) return;
+    switchingVideo = true;
+    try {
+      await new Promise(r => setTimeout(r, 350)); // 等 B站 SPA 更新标题/URL
+      // 二次确认：延迟后仍未回到当前身份，才认定为真正换片
+      if (videoIdentity() === stateIdentity()) return;
+      state.tid = adapter.tid();
+      state.vid = adapter.vid();
+      state.title = adapter.title();
+      state.sources = [];
+      state.chapters = [];
+      state.danmaku = [];
+      state.second = {};
+      state.secondSource = -1;
+      state.activeSource = 0;
+      state.currentIdx = 0;
+      state.lastHasSubtitle = null; // 重新判定自动展开/折叠
+      const saved = await store.getVideo(state.tid, state.vid);
+      if (saved && saved.sources) {
+        state.sources = saved.sources.map(s => ({ ...s, parsed: true, sentences: s.sentences || [] }));
+        state.second = saved.second || {};
+        state.chapters = saved.chapters || [];
+        state.activeSource = saved.activeSource || 0;
+        state.secondSource = typeof saved.secondSource === 'number' ? saved.secondSource : -1;
+      }
+      bindVideoEvents();      // 换片后 video 元素可能被替换，重新绑定
+      pushState();
+      loadNativeSubtitles().catch(e => console.debug('[vc] switch subtitles error', e));
+      loadDanmaku().catch(e => console.debug('[vc] switch danmaku error', e));
+      console.log('[vc] video switched in place ->', state.tid, state.vid);
+    } finally {
+      switchingVideo = false;
+    }
   }
   // 监听设置页跨标签改动，实时同步字幕条开关/自动折叠等，无需刷新视频页
   function watchSettingsChanges() {
@@ -245,6 +294,7 @@
     } catch (e) { console.debug('[vc] watchSettingsChanges skipped', e); }
   }
 
+  let boundVideoEl = null;
   function bindVideoEvents() {
     watchVideoSwitch();
     const v = video();
@@ -255,6 +305,8 @@
       }, 500);
       return;
     }
+    if (v === boundVideoEl) return; // 同一 video 元素只绑定一次，避免重复监听
+    boundVideoEl = v;
     v.addEventListener('timeupdate', () => {
       const t = v.currentTime * 1000;
       const list = currentSentences();
