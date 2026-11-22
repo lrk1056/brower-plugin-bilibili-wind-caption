@@ -33,6 +33,7 @@
   <nav class="tabs" id="tabs">
     <button class="tab active" data-tab="subtitle">字幕</button>
     <button class="tab" data-tab="chapter">章节</button>
+    <button class="tab" data-tab="danmaku">弹幕</button>
     <button class="tab" data-tab="translate">翻译</button>
   </nav>
 
@@ -97,6 +98,22 @@
       <button class="mini" id="ch-prev">← 上一章</button>
       <button class="mini" id="ch-next">下一章 →</button>
     </div>
+  </section>
+
+  <!-- 弹幕 -->
+  <section class="tabpane hidden" data-pane="danmaku">
+    <div class="section-head">
+      <h3>弹幕</h3>
+      <label class="dm-hide-toggle" title="隐藏/显示 B站页面上的官方弹幕栏">
+        <input type="checkbox" id="dm-hide-official"> 隐藏官方弹幕
+      </label>
+    </div>
+    <div class="dm-toolbar">
+      <input id="dm-search" type="text" placeholder="搜索弹幕内容">
+      <button class="mini ghost" id="dm-reload">刷新弹幕</button>
+    </div>
+    <div class="dm-head"><span>时间</span><span>内容</span><span>发送时间</span></div>
+    <div class="dm-list" id="dm-list"><div class="empty">加载中…</div></div>
   </section>
 
   <!-- 翻译 -->

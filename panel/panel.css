@@ -180,3 +180,18 @@ button{cursor:pointer}
   padding:8px 14px;border-radius:7px;opacity:0;pointer-events:none;transition:.2s;z-index:50;font-size:11px;max-width:90%}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 input[type=checkbox]{accent-color:var(--pr)}
+
+/* ===== 弹幕 Tab ===== */
+.dm-hide-toggle{font-size:11px;color:var(--mu);margin-left:auto;display:flex;align-items:center;gap:5px;cursor:pointer}
+.dm-hide-toggle input{accent-color:var(--pr)}
+.dm-toolbar{display:flex;gap:6px;padding:7px 10px;border-bottom:1px solid var(--bd)}
+.dm-toolbar input{flex:1;min-width:0;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:5px 8px;outline:none;font-size:12px}
+.dm-head{display:grid;grid-template-columns:60px 1fr 92px;gap:6px;padding:6px 10px;font-size:10px;color:var(--mu);border-bottom:1px solid var(--bd)}
+.dm-list{flex:1;overflow-y:auto;padding:2px 0}
+.dm-item{display:grid;grid-template-columns:60px 1fr 92px;gap:6px;padding:6px 10px;font-size:12px;align-items:start;border-bottom:1px solid rgba(128,128,128,.08);cursor:pointer}
+.dm-item:hover{background:var(--s2)}
+.dm-item.cur{background:rgba(255,107,107,.08)}
+.dm-item .dm-t{color:var(--ac);font-variant-numeric:tabular-nums;font-size:11px}
+.dm-item .dm-c{word-break:break-word;line-height:1.4}
+.dm-item .dm-send{color:var(--mu);font-size:10px;text-align:right}
+.dm-item mark{background:var(--mark-bg);color:var(--mark-tx);border-radius:2px}

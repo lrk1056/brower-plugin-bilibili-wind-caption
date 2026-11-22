@@ -20,6 +20,7 @@
     secondSource: -1,
     second: {},           // idx -> {content}
     chapters: [],
+    danmaku: [],          // [{timeMs, sendTs, content}]
     settings: null,
     currentIdx: 0,
     playing: false,
@@ -85,6 +86,44 @@
         loadNativeSubtitles().catch(e => console.debug('[vc] retry error', e));
       }, delay));
     }
+    // 弹幕异步加载（登录态下接口返回更全）
+    loadDanmaku().catch(e => console.debug('[vc] loadDanmaku error', e));
+    // 应用"隐藏官方弹幕"设置（默认关闭）
+    applyOfficialDanmakuVisibility();
+  }
+
+  // 加载 B站弹幕（XML）
+  async function loadDanmaku() {
+    if (state.site !== 'bilibili') return;
+    try {
+      const { cid } = await adapter.aidCid();
+      if (!cid) return;
+      const res = await bgSend({ action: 'LOAD_BILI_DANMAKU', cid, bvid: state.tid });
+      console.log('[vc] LOAD_BILI_DANMAKU:', res && res.ok, 'count:', res && res.list && res.list.length);
+      if (res && res.ok && res.list) {
+        state.danmaku = res.list;
+        pushState();
+      }
+    } catch (e) { console.debug('[vc] loadDanmaku error', e); }
+  }
+
+  // 隐藏/显示 B站官方弹幕栏（默认关闭=显示官方弹幕）
+  function applyOfficialDanmakuVisibility() {
+    try {
+      const hide = !!(state.settings && state.settings.hideOfficialDanmaku);
+      let style = document.getElementById('vc-hide-danmaku-style');
+      if (hide && !style) {
+        style = document.createElement('style');
+        style.id = 'vc-hide-danmaku-style';
+        style.textContent = `
+          .bpx-player-dm-wrap,.bpx-player-dm,.bpx-player-dm-view,.bpx-player-dm-surface,
+          #danmukuBox,.bili-dm-wrap{display:none !important}
+        `;
+        (document.head || document.documentElement).appendChild(style);
+      } else if (!hide && style) {
+        style.remove();
+      }
+    } catch (e) {}
   }
 
   async function loadNativeSubtitles() {
@@ -574,6 +613,7 @@
       second: state.second,
       sentences: currentSentences(),
       chapters: state.chapters,
+      danmaku: state.danmaku,
       currentIdx: state.currentIdx, playing: state.playing,
       settings: state.settings,
       needLoginSubtitle: !!(await store.get('needLoginSubtitle', false)),
@@ -621,6 +661,23 @@
       jumpTo(Math.max(0, idx)); return { ok: true };
     });
     proto.on('CONTROL', p => { control(p.op, p.value); return { ok: true }; });
+    proto.on('SEEK_MS', p => {
+      const v = video();
+      if (v) v.currentTime = Math.max(0, (p.ms || 0) / 1000);
+      return { ok: true };
+    });
+    proto.on('LOAD_DANMAKU', async () => { await loadDanmaku(); return { ok: true, count: state.danmaku.length }; });
+    proto.on('TOGGLE_OFFICIAL_DANMAKU', async p => {
+      if (!state.settings) state.settings = await store.getSettings();
+      state.settings.hideOfficialDanmaku = !!p.hide;
+      await store.saveSettings(state.settings);
+      applyOfficialDanmakuVisibility();
+      return { ok: true, hide: state.settings.hideOfficialDanmaku };
+    });
+    proto.on('GET_OFFICIAL_DANMAKU', async () => {
+      if (!state.settings) state.settings = await store.getSettings();
+      return { ok: true, hide: !!state.settings.hideOfficialDanmaku };
+    });
     proto.on('TOGGLE_FOLD', async () => {
       state.folded = !state.folded;
       applyLayout();

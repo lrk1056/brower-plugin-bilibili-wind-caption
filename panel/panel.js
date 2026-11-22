@@ -7,9 +7,9 @@
   const token = params.get('token') || document.getElementById('vc-panel-frame')?.dataset.token || '';
   VC.proto.init({ role: 'panel', target: parent, token: token || '__PENDING__' });
 
-  let S = { sentences: [], chapters: [], sources: [], activeSource: 0, secondSource: -1, second: {},
+  let S = { sentences: [], chapters: [], danmaku: [], sources: [], activeSource: 0, secondSource: -1, second: {},
     currentIdx: 0, settings: {}, site: '', title: '' };
-  let view = 'list', multi = false, selected = new Set(), query = '';
+  let view = 'list', multi = false, selected = new Set(), query = '', dmQuery = '';
 
   function toast(msg) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('on');
@@ -36,6 +36,28 @@
     return String(t).replace(new RegExp(q, 'gi'), m => `<mark>${m}</mark>`);
   }
   function titleAt(ms) { return U.chapterTitleAt(S.chapters, ms) || '字幕'; }
+  function fmtSendTime(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts * 1000);
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear() % 100}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+  function renderDanmaku() {
+    const box = $('#dm-list');
+    if (!box) return;
+    const all = S.danmaku || [];
+    if (!all.length) { box.innerHTML = '<div class="empty">暂无弹幕</div>'; return; }
+    const list = dmQuery ? all.filter(d => d.content.includes(dmQuery)) : all;
+    if (!list.length) { box.innerHTML = '<div class="empty">未找到匹配的弹幕</div>'; return; }
+    const curMs = (S.sentences[S.currentIdx] || {}).fromMs || 0;
+    box.innerHTML = list.map(d => {
+      const cur = Math.abs(d.timeMs - curMs) < 3000 ? ' cur' : '';
+      const content = dmQuery ? String(d.content).replace(new RegExp(dmQuery.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi'), m => `<mark>${m}</mark>`) : escapeHtml(d.content);
+      return `<div class="dm-item${cur}" data-ms="${d.timeMs}"><span class="dm-t">${U.fmtClock(d.timeMs / 1000)}</span><span class="dm-c">${content}</span><span class="dm-send">${fmtSendTime(d.sendTs)}</span></div>`;
+    }).join('');
+    $$('.dm-item', box).forEach(el => el.addEventListener('click', () => call('SEEK_MS', { ms: +el.dataset.ms })));
+  }
+  function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
   /* ---------- 外观（主题 / 字号 / 行高）：只读设置页保存的值，不在面板内修改 ---------- */
   const APPEARANCE = { theme: 'gray', fontSize: 13, lineHeight: 1.55 };
@@ -495,8 +517,25 @@
       p.classList.toggle('active', on);
       p.classList.toggle('hidden', !on); // 必须同步移除 hidden，否则 display:none!important 导致空白
     });
+    if (name === 'danmaku') renderDanmaku();
   }
   $$('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+  /* ---------- 弹幕 Tab 交互 ---------- */
+  $('#dm-search').addEventListener('input', e => { dmQuery = e.target.value.trim(); renderDanmaku(); });
+  $('#dm-reload').addEventListener('click', async () => {
+    toast('正在刷新弹幕...');
+    const r = await call('LOAD_DANMAKU', {});
+    toast(r && r.ok ? `已加载 ${r.count} 条弹幕` : '刷新失败');
+  });
+  $('#dm-hide-official').addEventListener('change', async e => {
+    const r = await call('TOGGLE_OFFICIAL_DANMAKU', { hide: e.target.checked });
+    toast(r && r.ok ? (e.target.checked ? '已隐藏官方弹幕' : '已显示官方弹幕') : '操作失败');
+  });
+  // 初始化官方弹幕开关状态
+  call('GET_OFFICIAL_DANMAKU').then(r => {
+    if (r && r.ok) $('#dm-hide-official').checked = !!r.hide;
+  });
 
   /* ---------- 键盘快捷键（聚焦面板时） ---------- */
   document.addEventListener('keydown', async e => {

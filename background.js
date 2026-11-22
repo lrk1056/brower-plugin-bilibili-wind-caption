@@ -182,6 +182,52 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             needLogin: !!(wbi.data && wbi.data.need_login_subtitle) };
         } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
       }
+      case 'LOAD_BILI_DANMAKU': {
+        // B站弹幕：/x/v1/dm/list.so?oid=cid 返回 gzip 压缩的 XML
+        try {
+          const cid = msg.cid;
+          if (!cid) return { ok: false, error: '缺少 cid' };
+          const H = { 'Referer': `https://www.bilibili.com/video/${msg.bvid || ''}`, 'User-Agent': 'Mozilla/5.0' };
+          const resp = await fetch(`https://api.bilibili.com/x/v1/dm/list.so?oid=${cid}`, { headers: H });
+          let buf = await resp.arrayBuffer();
+          // B站弹幕是压缩数据：可能是 gzip(1f8b)、zlib(78..) 或 raw-deflate。
+          // 若开头不是 XML 声明，则依次尝试解压。
+          const head = new TextDecoder().decode(new Uint8Array(buf).slice(0, 5));
+          if (!head.startsWith('<?xml') && !head.startsWith('<i')) {
+            const candidates = [];
+            const u8 = new Uint8Array(buf);
+            if (u8[0] === 0x1f && u8[1] === 0x8b) candidates.push('gzip');
+            else if (u8[0] === 0x78) candidates.push('deflate', 'deflate-raw');
+            else candidates.push('deflate-raw', 'gzip', 'deflate'); // 如 7c59 这类无头 raw deflate
+            for (const fmt of candidates) {
+              try {
+                const ds = new DecompressionStream(fmt);
+                const out = await new Response(new Blob([buf]).stream().pipeThrough(ds)).arrayBuffer();
+                const t = new TextDecoder().decode(new Uint8Array(out).slice(0, 5));
+                if (t.startsWith('<?xml') || t.startsWith('<i')) { buf = out; break; }
+              } catch (e) { /* 尝试下一种格式 */ }
+            }
+          }
+          let xml = new TextDecoder('utf-8').decode(buf);
+          // 兼容可能的乱码：尝试 gb18030
+          if (/锘|锛|涓|浣/.test(xml.slice(0, 200))) {
+            try { xml = new TextDecoder('gb18030').decode(buf); } catch (e) {}
+          }
+          const list = [];
+          const re = /<d\s+p="([^"]*)"[^>]*>([\s\S]*?)<\/d>/g;
+          let m;
+          while ((m = re.exec(xml))) {
+            const p = m[1].split(',');
+            const timeSec = parseFloat(p[0]) || 0;
+            const sendTs = parseInt(p[4], 10) || 0;
+            const content = m[2].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+            if (content) list.push({ timeMs: Math.round(timeSec * 1000), sendTs, content });
+          }
+          list.sort((a, b) => a.timeMs - b.timeMs);
+          console.log('[vc-bg] LOAD_BILI_DANMAKU cid', cid, '-> count', list.length);
+          return { ok: true, list };
+        } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+      }
       case 'GET_SETTINGS': return { ok: true, settings: await store.getSettings() };
       default: return { ok: false, error: 'unknown action: ' + msg.action };
     }
