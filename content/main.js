@@ -433,23 +433,22 @@
   //（常规模式下右栏在视频右侧，与视频顶部大致齐平）。
   function isWideScreenMode(right) {
     const video = document.querySelector('video');
-    if (video && right) {
-      const vr = video.getBoundingClientRect();
+    // 播放器容器宽度：宽屏时明显更宽（接近视口宽）
+    const player = document.querySelector('.bpx-player-wrap, .bpx-player-container, .video-player-box, #bilibili_player, .bpx-player-primary-area');
+    const pRect = player ? player.getBoundingClientRect() : null;
+    const vRect = video ? video.getBoundingClientRect() : null;
+    const stageRect = pRect && pRect.width > 0 ? pRect : vRect;
+
+    if (stageRect && right) {
       const rr = right.getBoundingClientRect();
-      // 右栏顶部明显低于视频顶部（即在视频下方）→ 宽屏重排
-      if (rr.top > vr.top + Math.max(80, vr.height * 0.35)) return true;
-      // 右栏宽度接近或超过视频宽度 → 宽屏铺满
-      if (rr.width > vr.width * 0.9 && rr.width > 480) return true;
+      // 右侧栏顶部跑到视频/播放器下方 → 宽屏重排
+      if (rr.top > stageRect.top + Math.max(60, stageRect.height * 0.3)) return true;
+      // 右栏宽度远小于播放器宽度，说明播放器已铺满、右栏被挤到下方
+      if (stageRect.width > 900 && rr.width < stageRect.width * 0.4) return true;
     }
-    if (right) {
-      const rw = right.getBoundingClientRect().width;
-      if (rw > 520) return true; // 常规右栏约 350~420px
-    }
-    const player = document.querySelector('.bpx-player-wrap, .video-player-box, #bilibili_player');
-    if (player) {
-      const pw = player.getBoundingClientRect().width;
-      if (pw > window.innerWidth * 0.82) return true;
-    }
+    // 播放器宽度接近视口宽
+    if (stageRect && stageRect.width > window.innerWidth * 0.82) return true;
+    if (right && right.getBoundingClientRect().width > 520) return true;
     const cls = ((document.body && document.body.className) || '') + ' ' + ((document.documentElement && document.documentElement.className) || '');
     if (/(^|\s)(widescreen|web-fullscreen|bpx-player-fullscreen|player-fullscreen)(\s|$)/i.test(cls)) return true;
     return false;
@@ -497,11 +496,11 @@
     const vRect = vEl ? vEl.getBoundingClientRect() : null;
     let top;
     if (wide) {
-      // 宽屏：右栏栏目已移到视频下方。面板必须放在"视频底部之后"的栏目区顶部，
-      // 绝不覆盖视频画面。取右栏顶部与视频底部中较大者作为起点。
-      const afterVideo = vRect ? vRect.bottom + window.scrollY + 12 : r.top + window.scrollY;
-      top = Math.max(r.top + window.scrollY, afterVideo);
-      // 若右栏容器加了 padding-top 预留空白，面板正好落在该空白内
+      // 宽屏：面板紧贴视频底部之下（绝不覆盖画面），并与视频右缘对齐。
+      // 这是纯几何定位，不依赖 B站右栏容器的具体结构与 padding。
+      top = (vRect ? vRect.bottom : r.top) + window.scrollY + 12;
+      // 若右栏容器本身已整体位于视频下方且更靠下，则用容器顶部，避免面板压到容器内容
+      if (r.top > (vRect ? vRect.bottom : 0)) top = Math.max(top, r.top + window.scrollY);
     } else if (anchor) {
       // 常规：anchor 已含我们预留的 margin-top，减回去就是空白起点（UP主卡片下方）。
       top = anchor.getBoundingClientRect().top + window.scrollY - height - 12;
@@ -535,6 +534,22 @@
     state.host.style.left = Math.round(left + window.scrollX) + 'px';
     state.host.style.top = Math.round(top) + 'px';
     state.host.style.width = Math.round(panelW) + 'px';
+
+    // ★ 重叠保护：无论哪种模式，面板都不得压住视频画面。
+    // 若定位后与视频矩形相交，强制下移到视频底部之下。
+    try {
+      if (vRect && vRect.width > 0 && vRect.height > 0) {
+        const hr = state.host.getBoundingClientRect();
+        const overlap = hr.left < vRect.right && hr.right > vRect.left &&
+                        hr.top < vRect.bottom && hr.bottom > vRect.top;
+        if (overlap) {
+          const fixedTop = vRect.bottom + window.scrollY + 12;
+          state.host.style.top = Math.round(fixedTop) + 'px';
+          state.host.style.left = Math.round(Math.max(8, Math.min(vRect.right - panelW, window.innerWidth - panelW - 8)) + window.scrollX) + 'px';
+          document.body.classList.add('vc-bili-wide'); // 触发宽屏预留策略，避免压住下方栏目
+        }
+      }
+    } catch (e) { console.debug('[vc] overlap guard skipped', e); }
   }
 
   // 保证 host 在正确锚点、iframe 挂在其内。可被反复调用（幂等）。
