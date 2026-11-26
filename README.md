@@ -2,7 +2,7 @@
 
 一个只服务 Bilibili 的浏览器扩展：把视频字幕放进视频旁边的面板里，能看、能搜、能翻译、能导出，也可以生成章节、查看弹幕。按 vCaptions 2.4.6 的功能范围裁剪实现，不含账号体系、AI 对话、音频转录、笔记模块，也不支持其他视频站点。
 
-![面板嵌入视频页右栏](screenshots/00-embed-overview.png)
+<img src="screenshots/00-embed-overview.png" alt="面板嵌入视频页右栏" width="50%">
 
 ## 安装
 
@@ -20,7 +20,7 @@
 
 ### 字幕列表
 
-![字幕列表](screenshots/01-subtitle-list.png)
+<img src="screenshots/01-subtitle-list.png" alt="字幕列表" width="50%">
 
 每条字幕带时间戳，点一下跳到对应播放位置；正在播放的那条会高亮，列表自动跟随滚动。如果配了翻译并开启第二字幕，每条下面会多一行译文。顶部小标签显示当前字幕源、第二字幕状态和总条数，「刷新字幕」会重新拉取。
 
@@ -31,31 +31,31 @@
 - **多选**：勾选多条后批量复制或发起翻译，支持全选 / 全不选 / 反选。
 - **回到当前**：滚动定位回正在播放的句子。
 
-![搜索高亮](screenshots/03-search.png)
+<img src="screenshots/03-search.png" alt="搜索高亮" width="50%">
 
-![多选批量操作](screenshots/04-multi-select.png)
+<img src="screenshots/04-multi-select.png" alt="多选批量操作" width="50%">
 
 ### 全文视图
 
-![全文视图](screenshots/02-article-view.png)
+<img src="screenshots/02-article-view.png" alt="全文视图" width="50%">
 
 点「全文」后，句子会按语义合并成段落并自动补上标点（中文 / 英文 / 日文各用对应标点）。段落里的每个句子都能点，点了跳到对应播放位置；正在播放的句子用醒目颜色标出。全文视图里没有时间戳和多选，底部的「复制全部」「快捷下载」拿到的是和屏幕上一致的纯文本。
 
 ### 章节
 
-![章节列表](screenshots/05-chapters.png)
+<img src="screenshots/05-chapters.png" alt="章节列表" width="50%">
 
 「章节」Tab 列出视频已有的章节（B站 `view_points` 数据），显示序号、标题、时间和描述，点章节跳转，底部有上一章 / 下一章。面板顶部还有一条章节进度条，标出当前所在章节。如果视频没有章节，可以配好 AI 服务后点「生成章节」，让模型按字幕内容切分，可选是否包含描述和段落、生成语言（中文 / 英语 / 日语）。
 
 ### 弹幕
 
-![弹幕列表](screenshots/06-danmaku.png)
+<img src="screenshots/06-danmaku.png" alt="弹幕列表" width="50%">
 
 「弹幕」Tab 拉取视频的 XML 弹幕，按视频时间列出时间、内容、发送时间，支持搜索和点击跳转到对应播放位置。设置里的「隐藏官方弹幕」可以隐藏 B站页面自带的弹幕栏，默认关闭（显示）。
 
 ### 翻译
 
-![翻译设置](screenshots/07-translate.png)
+<img src="screenshots/07-translate.png" alt="翻译设置" width="50%">
 
 「翻译」Tab 选目标语言（中文 / 英语 / 日语），点「立即翻译」发起任务，显示进度。勾「显示第二字幕（双语对照）」会在字幕列表里同时显示原文和译文；「修正语音识别错误」让模型顺手修一下识别文本。翻译和章节生成都依赖设置页里配置的 AI 服务，没配的话会提示失败。
 
@@ -63,7 +63,7 @@
 
 ### 复制与导出
 
-![导出格式](screenshots/08-export.png)
+<img src="screenshots/08-export.png" alt="导出格式" width="50%">
 
 底部三个按钮：「复制全部」复制当前视图的字幕，「导出 ▾」弹出格式列表，「快捷下载」按默认格式直接下载。可选格式：
 
@@ -81,7 +81,7 @@
 
 ### 折叠
 
-![折叠态](screenshots/09-folded.png)
+<img src="screenshots/09-folded.png" alt="折叠态" width="50%">
 
 点标题栏左侧的箭头折叠面板，折叠后只留 44px 标题栏，和 B站自己的栏目折叠效果一致；再点一次展开。设置里的「自动折叠」打开后，字幕消失或无字幕时面板会自动收起。
 
@@ -91,23 +91,23 @@
 
 ### 显示配置
 
-![显示配置](screenshots/10-settings-display.png)
+<img src="screenshots/10-settings-display.png" alt="显示配置" width="50%">
 
 - **外观**：主题色（灰色默认 / 跟随系统 / 深色 / 浅色）、字体大小（12–20px）、行高（1.2–2.0）、显示密度（紧凑 / 标准 / 宽松），都带实时字幕预览。灰色主题是默认值，配色对齐 B站右栏的弹幕列表和 AI 总结卡片。
 - **字幕列表行为**：自动插入（打开视频就插面板）、自动展开（检测到字幕就展开）、自动折叠（字幕消失时收起）、智能标点（按语言补标点）。关闭自动插入后，仍可用页面右下角「字」按钮手动打开。
 - **字幕条内容**：控制视频上的悬浮字幕条（默认关闭），以及章节进度、章节详情、当前字幕三行的显隐；另有隐藏官方弹幕开关。
 
-![字幕条设置预览](screenshots/10-settings-display.png)
+<img src="screenshots/10-settings-display.png" alt="字幕条设置预览" width="50%">
 
 ### AI / 翻译服务
 
-![服务配置](screenshots/11-settings-services.png)
+<img src="screenshots/11-settings-services.png" alt="服务配置" width="50%">
 
 新增服务，填名称、类别（翻译 / AI）、协议类型、API 地址、Key、模型，可测试连通性；指定默认 AI 服务和默认翻译服务。章节生成和翻译从这里取配置。
 
 ### 网站配置
 
-![网站配置](screenshots/12-settings-site.png)
+<img src="screenshots/12-settings-site.png" alt="网站配置" width="50%">
 
 显示当前网址和适配状态，可保存当前页面的覆盖配置（按 host + path 存）。面板固定嵌入视频旁，没有位置选项。
 
