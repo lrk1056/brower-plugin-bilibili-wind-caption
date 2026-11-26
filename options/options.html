@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WindCaption · 观语听风字幕 · 设置</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="side">
+    <div class="logo">WindCaption · 设置</div>
+    <a data-sec="display" class="active">显示配置</a>
+    <a data-sec="services">AI / 翻译服务</a>
+    <a data-sec="site">网站配置</a>
+    <div class="side-foot"><button id="btn-reset-all" class="mini danger">恢复默认设置</button></div>
+  </aside>
+  <main class="main">
+    <!-- 显示配置（合并原通用配置 + 面板外观设置） -->
+    <section data-panel="display">
+      <h1>显示配置</h1>
+
+      <h2>外观</h2>
+      <div class="item"><div><b>主题色</b><p>设置页与字幕面板同步生效</p></div><select id="g-theme"><option value="gray">灰色（默认）</option><option value="system">跟随系统</option><option value="dark">深色</option><option value="light">浅色</option></select></div>
+      <div class="item"><div><b>字体大小</b><p>限制在 12–20px，避免排版溢出</p></div><div class="range-wrap"><input type="range" id="d-font" min="12" max="20" step="1" value="15"><span class="range-val" id="d-font-val">15px</span></div></div>
+      <div class="item"><div><b>行高</b><p>限制在 1.2–2.0，避免排版溢出</p></div><div class="range-wrap"><input type="range" id="d-line" min="1.2" max="2" step="0.05" value="1.55"><span class="range-val" id="d-line-val">1.55</span></div></div>
+      <div class="item"><div><b>显示密度</b></div><select id="d-density"><option value="compact">紧凑</option><option value="standard">标准</option><option value="comfortable">宽松</option></select></div>
+
+      <h2>字幕预览</h2>
+      <div class="preview-box" id="subtitle-preview">
+        <div class="pv-line cur">这是当前播放的字幕，用于预览主题与排版效果。</div>
+        <div class="pv-line">这是下一句字幕，调整上方参数会实时生效。</div>
+        <div class="pv-line pv-second">This is a second subtitle line for preview.</div>
+      </div>
+
+      <h2>字幕列表行为</h2>
+      <div class="item"><div><b>自动插入字幕列表</b><p>打开 B站视频时自动插入面板</p></div><input type="checkbox" id="g-autoInsert"></div>
+      <div class="item"><div><b>自动展开</b><p>检测到字幕时自动展开面板</p></div><input type="checkbox" id="g-autoExpand"></div>
+      <div class="item"><div><b>自动折叠</b><p>字幕消失或无字幕时自动折叠面板</p></div><input type="checkbox" id="g-autoFold"></div>
+      <div class="item"><div><b>智能标点</b><p>按语言自动补句间标点（中 / 英 / 日）</p></div><input type="checkbox" id="g-smartPunctuation"></div>
+
+      <h2>字幕条内容</h2>
+      <div class="item"><div><b>字幕条（B站悬浮字幕）</b><p>在视频上显示当前字幕的悬浮条</p></div><input type="checkbox" id="g-subtitleBar"></div>
+      <div class="item"><div><b>章节进度条</b></div><input type="checkbox" id="b-chProgress"></div>
+      <div class="item"><div><b>章节详情条</b></div><input type="checkbox" id="b-chDetail"></div>
+      <div class="item"><div><b>字幕条</b></div><input type="checkbox" id="b-subtitle"></div>
+      <div class="item"><div><b>隐藏官方弹幕</b><p>勾选后隐藏 B站视频页面上的官方弹幕栏（默认显示）</p></div><input type="checkbox" id="g-hideDanmaku"></div>
+      <div class="captionbar-preview" id="captionbar-preview">
+        <div class="cbp-chapter" id="cbp-chProgress">▰ ▰ ▰ ▱ ▱　章节进度条</div>
+        <div class="cbp-detail" id="cbp-chDetail">02 · 架构总览　章节详情条</div>
+        <div class="cbp-text" id="cbp-subtitle">这是当前播放的字幕 · 字幕条</div>
+      </div>
+    </section>
+
+    <section data-panel="services" class="hidden">
+      <h1>AI / 翻译服务</h1>
+      <p class="tip">自带 Key（BYOK），OpenAI 兼容协议。可添加 OpenAI / DeepSeek / Gemini / Ollama / 小牛 / DeepL 等。章节生成与翻译需要在此配置。</p>
+      <div id="service-list"></div>
+      <button class="primary" id="btn-add-service">+ 新增服务</button>
+      <div class="item"><div><b>默认 AI 服务（章节生成 / 翻译）</b></div><select id="default-ai"></select></div>
+      <div class="item"><div><b>默认翻译服务</b></div><select id="default-translate"></select></div>
+    </section>
+
+    <section data-panel="site" class="hidden">
+      <h1>网站配置</h1>
+      <p class="tip">仅适配 Bilibili，面板固定嵌入在视频旁，无需额外位置设置。以下展示当前页面与适配状态。</p>
+      <div class="item"><div><b>当前网址</b><p id="cur-url">—</p></div><span class="pill">已适配</span></div>
+    </section>
+
+    <div class="savebar"><span id="save-status"></span><button class="primary" id="btn-save">保存设置</button></div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="../lib/util.js"></script>
+<script src="../lib/storage.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

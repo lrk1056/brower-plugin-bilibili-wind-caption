@@ -1,0 +1,174 @@
+/* 注入到页面的样式：面板 iframe + 字幕悬浮条 */
+
+/* 嵌入模式容器：绝对定位覆盖在视频区域之上（弹幕层附近），随页面滚动。
+   注意：host 的唯一子元素 iframe 也是绝对定位（不参与文档流），
+   因此 host 必须有确定宽度；否则 shrink-to-fit 会得到 0，子元素 45% 也变成 0。
+   这里用 left+right 同时为 0 让宽度等于锚点宽度。 */
+#vc-embed-host {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: auto;
+  z-index: 1000;             /* 高于弹幕层与播放器控件，低于浏览器全屏 UI */
+  pointer-events: none;      /* 空白处不拦截视频点击 */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+/* 面板本身接收交互 */
+#vc-embed-host > #vc-panel-frame { pointer-events: auto; }
+#vc-embed-host:empty { display: none; }
+
+/* 三种模式下 iframe 的基础外观 */
+#vc-panel-frame.vc-panel {
+  border: 1px solid var(--bd, #2d3340);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.35);
+  background: #171a21;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* ===== 嵌入页面：覆盖在视频区域右侧，与视频等高，随页面滚动 ===== */
+#vc-panel-frame.vc-panel.mode-embed {
+  position: absolute !important;
+  top: 0;
+  right: 0;
+  width: min(420px, 45%);
+  min-width: 240px;          /* 防御：锚点偏窄/尚未布局完成时仍可见 */
+  height: 100%;
+  margin: 0;
+  border-radius: 6px 0 0 6px;
+  box-shadow: -4px 0 18px rgba(0,0,0,.35);
+}
+#vc-panel-frame.vc-panel.mode-embed.folded { height: 44px; width: min(420px, 45%); }
+
+/* ===== B站视频页：面板挂载到 body，用文档坐标+预留空白模拟右栏文档流 =====
+   ★ 不能把外来节点插进 .right-container-inner：该容器处于 B站 Vue 组件的子节点序列中，
+     异步重渲染时 Vue 会按自己的 vnode 顺序 patch，遇到外来节点会抛
+     HierarchyRequestError，导致推荐列表初始化中断、封面停在灰色占位。
+   这里把 host 放到 body（Vue 根节点 #app 之外），再用 CSS margin 在弹幕列表前
+   预留等高空白，面板绝对定位在该空白内，视觉上仍是"UP主卡片下方、弹幕列表上方"，
+   但完全不改动 Vue 管理的子节点结构。 */
+#vc-embed-host.vc-side-column {
+  position: absolute;
+  top: 0; left: 0; right: auto; bottom: auto;
+  display: block;
+  width: 350px;              /* JS 按右栏实际宽度精确设置 */
+  margin: 0;
+  z-index: 1;                /* 预留了空白，不需要盖住任何页面内容 */
+  pointer-events: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+#vc-embed-host.vc-side-column > #vc-panel-frame.vc-panel.mode-embed {
+  box-sizing: border-box;
+  position: static !important;
+  top: auto; right: auto; bottom: auto; left: auto;
+  width: 100%;
+  min-width: 0;
+  height: var(--vc-embed-panel-height, min(520px, 70vh));
+  margin: 0;
+  /* 与 B站右栏其他栏目一致：无边框纯色块（弹幕列表/AI总结均无描边、无阴影） */
+  border: 0 !important;
+  background: #f1f2f3;
+  border-radius: 8px;
+  box-shadow: none;
+}
+#vc-embed-host.vc-side-column > #vc-panel-frame.vc-panel.mode-embed.folded {
+  height: 44px; width: 100%;
+}
+/* 在弹幕列表模块之前预留面板高度，避免面板与页面内容重叠。
+   只改 margin，不增删接管节点，Vue patch 不受影响。 */
+body.vc-bili-embed-active .right-container-inner > .video-pod-above-modules,
+body.vc-bili-embed-active .right-container-inner > #danmukuBox,
+body.vc-bili-embed-active .right-container-inner > .danmaku-box {
+  margin-top: var(--vc-embed-panel-space, 0px) !important;
+}
+/* 弹幕模块临时缺失时，退而把推荐列表作为预留空白的锚点 */
+body.vc-bili-embed-active.vc-bili-embed-no-danmaku .right-container-inner > .rcmd-tab {
+  margin-top: var(--vc-embed-panel-space, 0px) !important;
+}
+
+/* ===== 宽屏 / 网页全屏模式适配 =====
+   宽屏下 B站把右栏栏目移到视频下方（横向重排），依次是：UP主卡片 → 弹幕列表 → AI总结/推荐。
+   面板应插在【弹幕列表下方】，不遮挡弹幕列表本身，也不遮挡视频。
+   做法：取消"首个栏目 margin-top"预留，改为在弹幕列表模块【下方】留出空白（margin-bottom），
+   面板绝对定位在该空白内，后续内容自然下移。 */
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .video-pod-above-modules,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > #danmukuBox,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .danmaku-box,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .rcmd-tab {
+  margin-top: 0 !important;
+}
+/* 弹幕列表下方预留面板高度（宽屏主路径） */
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > #danmukuBox,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .danmaku-box,
+body.vc-bili-embed-active.vc-bili-wide .right-container-inner > .video-pod-above-modules {
+  margin-bottom: var(--vc-embed-panel-space, 0px) !important;
+}
+/* 兜底：弹幕列表缺失时，把推荐/AI总结模块下推 */
+body.vc-bili-embed-active.vc-bili-wide.vc-bili-embed-no-danmaku .right-container-inner > .rcmd-tab {
+  margin-top: var(--vc-embed-panel-space, 0px) !important;
+}
+
+/* 面板关闭后的重开入口：仅在页面内没有面板时显示 */
+#vc-launcher {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1201;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--bd, #e4e5e7);
+  background: #cf4a43;
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  cursor: pointer;
+}
+#vc-launcher.show { display: flex; }
+#vc-launcher:hover { filter: brightness(1.07); }
+
+/* 字幕悬浮条（B站特性，默认关闭） */
+.vc-caption-bubble {
+  position: fixed;
+  left: 50%;
+  bottom: 76px;
+  transform: translateX(-50%);
+  z-index: 2147483645;
+  max-width: 720px;
+  min-width: 240px;
+  text-align: center;
+  pointer-events: none;
+}
+.vc-cb-chapter {
+  display: inline-block;
+  font-size: 12px;
+  color: #4dd0e1;
+  background: rgba(20,24,32,.82);
+  padding: 3px 10px;
+  border-radius: 6px 6px 0 0;
+}
+.vc-cb-detail {
+  display: block;
+  font-size: 12px;
+  color: #c9cdd4;
+  background: rgba(20,24,32,.82);
+  padding: 2px 12px;
+}
+.vc-cb-text {
+  display: block;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #fff;
+  background: rgba(0,0,0,.78);
+  padding: 8px 16px;
+  border-radius: 0 0 10px 10px;
+  text-shadow: 0 1px 3px #000;
+}
