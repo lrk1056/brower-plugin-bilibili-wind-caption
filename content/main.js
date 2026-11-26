@@ -363,8 +363,12 @@
     captionBubble.style.display = s ? 'block' : 'none';
     if (!s) return;
     const b = state.settings.subtitleBar;
+    // 当前章节：标题来自 chapterTitleAt，详情取所在 chapter 的 description
+    let chapter = null;
+    for (const c of (state.chapters || [])) { if (s.fromMs >= c.startMs) chapter = c; else break; }
     captionBubble.innerHTML = `
       ${b.showChapterProgress ? `<div class="vc-cb-chapter">${U.chapterTitleAt(state.chapters, s.fromMs)}</div>` : ''}
+      ${b.showChapterDetail && chapter && chapter.description ? `<div class="vc-cb-detail">${chapter.description}</div>` : ''}
       ${b.showSubtitle ? `<div class="vc-cb-text">${s.content}</div>` : ''}`;
   }
 
