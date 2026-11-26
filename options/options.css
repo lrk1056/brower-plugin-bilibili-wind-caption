@@ -43,7 +43,7 @@ button{cursor:pointer}.hidden{display:none!important}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 0}
 .grid4 label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mu)}
 .grid4 input{padding:7px;background:var(--s3);border:1px solid var(--bd);border-radius:7px}
-button.primary,button#btn-add-service,button#btn-save-site,button#btn-save{
+button.primary,button#btn-add-service,button#btn-save{
   background:var(--pr-btn);border:0;color:var(--on-pr);font-weight:700;padding:9px 16px;border-radius:8px}
 button.mini.danger{background:none;border:1px solid var(--dg);color:var(--dg);padding:6px 10px;border-radius:7px}
 .service-card{background:var(--s3);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}

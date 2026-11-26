@@ -183,16 +183,5 @@
       $('#cur-url').textContent = tabs[0] ? tabs[0].url : '—';
     });
   }
-  $('#btn-save-site').addEventListener('click', async () => {
-    const url = $('#cur-url').textContent;
-    if (!url || url === '—') return toast('无法获取当前页面');
-    const u = new URL(url);
-    const key = u.host + u.pathname;
-    settings.websiteConfigs = settings.websiteConfigs || {};
-    if (settings.websiteConfigs[key]) delete settings.websiteConfigs[key].position;
-    await store.saveSettings(settings);
-    toast('已保存，刷新网页后生效');
-  });
-
   init();
 })();
